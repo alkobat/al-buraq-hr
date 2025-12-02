@@ -1,0 +1,45 @@
+# تأمين الترميز
+AddDefaultCharset UTF-8
+
+# منع عرض محتويات المجلدات
+Options -Indexes
+
+# تأمين ملفات الحساسة
+<Files ~ "\.(env|sql|log|ini|conf|sh|bat|com|phtml|phps|php5|php4|php3|php2|php1|phar|git|svn|htaccess|htpasswd)$">
+    Order allow,deny
+    Deny from all
+</Files>
+
+# إعادة كتابة الروابط (لدعم الروابط النظيفة لاحقًا)
+
+RewriteEngine On
+RewriteCond %{REQUEST_URI} !^/public/
+RewriteRule ^(.*)$ /public/$1 [L]
+
+# إعادة التوجيه إلى index.php للروابط النظيفة
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ index.php [QSA,L]
+
+
+
+# تأمين الجلسات
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set X-XSS-Protection "1; mode=block"
+    Header always set Referrer-Policy "no-referrer-when-downgrade"
+</IfModule>
+
+# ضغط الملفات لتحسين الأداء
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/plain
+    AddOutputFilterByType DEFLATE text/html
+    AddOutputFilterByType DEFLATE text/xml
+    AddOutputFilterByType DEFLATE text/css
+    AddOutputFilterByType DEFLATE application/xml
+    AddOutputFilterByType DEFLATE application/xhtml+xml
+    AddOutputFilterByType DEFLATE application/rss+xml
+    AddOutputFilterByType DEFLATE application/javascript
+    AddOutputFilterByType DEFLATE application/x-javascript
+</IfModule>
