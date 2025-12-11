@@ -21,6 +21,8 @@ use PhpOffice\PhpWord\Shared\RGBColor;
 class ExportService {
     private $pdo;
     private $filters = [];
+    private $columns = [];
+    private $sections = [];
     private $company_name = '';
     private $logo_path = '';
     
@@ -32,17 +34,51 @@ class ExportService {
         global $system_settings;
         $this->company_name = $system_settings['company_name'] ?? 'شركة البراق للنقل الجوي';
         $this->logo_path = $system_settings['logo_path'] ?? 'logo.png';
+        
+        // Default column preference
+        $this->columns = ['name', 'email', 'dept', 'year', 'evaluator', 'score', 'status', 'updated_at'];
+        $this->sections = ['summary', 'details'];
     }
     
     /**
      * Set filter criteria for exports
+     * Accepts either an array of filters or individual legacy arguments
      */
-    public function setFilters($cycle = '', $dept = '', $status = '') {
-        $this->filters = [
-            'cycle' => $cycle,
-            'dept' => $dept,
-            'status' => $status
-        ];
+    public function setFilters($cycleOrFilters = [], $dept = '', $status = '') {
+        if (is_array($cycleOrFilters)) {
+            $this->filters = array_merge([
+                'cycle' => '',
+                'dept' => [],
+                'status' => [],
+                'role' => '',
+                'min_score' => '',
+                'max_score' => '',
+                'start_date' => '',
+                'end_date' => '',
+                'sort' => 'updated_at_desc'
+            ], $cycleOrFilters);
+        } else {
+            // Legacy support
+            $this->filters = [
+                'cycle' => $cycleOrFilters,
+                'dept' => $dept ? [$dept] : [],
+                'status' => $status ? [$status] : [],
+                'role' => '',
+                'min_score' => '',
+                'max_score' => '',
+                'start_date' => '',
+                'end_date' => '',
+                'sort' => 'updated_at_desc'
+            ];
+        }
+    }
+    
+    /**
+     * Set export options (columns and sections)
+     */
+    public function setOptions($columns = [], $sections = []) {
+        if (!empty($columns)) $this->columns = $columns;
+        if (!empty($sections)) $this->sections = $sections;
     }
     
     /**
@@ -63,13 +99,42 @@ class ExportService {
             $sql_base .= " AND e.cycle_id = ?";
             $params[] = $this->filters['cycle'];
         }
+        
         if (!empty($this->filters['dept'])) {
-            $sql_base .= " AND u.department_id = ?";
-            $params[] = $this->filters['dept'];
+            $dept_placeholders = implode(',', array_fill(0, count($this->filters['dept']), '?'));
+            $sql_base .= " AND u.department_id IN ($dept_placeholders)";
+            $params = array_merge($params, $this->filters['dept']);
         }
+        
         if (!empty($this->filters['status'])) {
-            $sql_base .= " AND e.status = ?";
-            $params[] = $this->filters['status'];
+            $status_placeholders = implode(',', array_fill(0, count($this->filters['status']), '?'));
+            $sql_base .= " AND e.status IN ($status_placeholders)";
+            $params = array_merge($params, $this->filters['status']);
+        }
+        
+        if (!empty($this->filters['role'])) {
+            $sql_base .= " AND e.evaluator_role = ?";
+            $params[] = $this->filters['role'];
+        }
+        
+        if (isset($this->filters['min_score']) && $this->filters['min_score'] !== '') {
+            $sql_base .= " AND e.total_score >= ?";
+            $params[] = $this->filters['min_score'];
+        }
+        
+        if (isset($this->filters['max_score']) && $this->filters['max_score'] !== '') {
+            $sql_base .= " AND e.total_score <= ?";
+            $params[] = $this->filters['max_score'];
+        }
+        
+        if (!empty($this->filters['start_date'])) {
+            $sql_base .= " AND DATE(e.updated_at) >= ?";
+            $params[] = $this->filters['start_date'];
+        }
+        
+        if (!empty($this->filters['end_date'])) {
+            $sql_base .= " AND DATE(e.updated_at) <= ?";
+            $params[] = $this->filters['end_date'];
         }
         
         return [$sql_base, $params];
@@ -80,6 +145,29 @@ class ExportService {
      */
     public function getFilteredData() {
         list($sql_base, $params) = $this->buildFilteredQuery();
+        
+        $order_clause = " ORDER BY e.updated_at DESC";
+        
+        if (!empty($this->filters['sort'])) {
+            switch ($this->filters['sort']) {
+                case 'score_asc':
+                    $order_clause = " ORDER BY e.total_score ASC";
+                    break;
+                case 'score_desc':
+                    $order_clause = " ORDER BY e.total_score DESC";
+                    break;
+                case 'dept':
+                    $order_clause = " ORDER BY d.name_ar ASC, u.name ASC";
+                    break;
+                case 'updated_at_asc':
+                    $order_clause = " ORDER BY e.updated_at ASC";
+                    break;
+                case 'updated_at_desc':
+                default:
+                    $order_clause = " ORDER BY e.updated_at DESC";
+                    break;
+            }
+        }
         
         $sql = "SELECT 
             u.name,
@@ -94,7 +182,7 @@ class ExportService {
             c.id as cycle_id,
             e.id as eval_id,
             e.evaluator_role
-        " . $sql_base . " ORDER BY e.updated_at DESC";
+        " . $sql_base . $order_clause;
         
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute($params);
@@ -121,113 +209,155 @@ class ExportService {
         $stmt->execute($params);
         return $stmt->fetch();
     }
+
+    private function shouldIncludeColumn($col) {
+        return in_array($col, $this->columns);
+    }
+
+    private function shouldIncludeSection($sec) {
+        return in_array($sec, $this->sections);
+    }
     
     /**
      * Export to Excel with professional formatting
      */
     public function exportExcel() {
         $spreadsheet = new Spreadsheet();
-        $sheet = $spreadsheet->getActiveSheet();
-        $sheet->setRightToLeft(true);
-        
-        // Get data
-        $data = $this->getFilteredData();
-        $stats = $this->getSummaryStats();
-        
+        $sheetIndex = 0;
+
         // ===== SUMMARY SHEET =====
-        $summary_sheet = $spreadsheet->createSheet();
-        $summary_sheet->setTitle('الملخص');
-        $summary_sheet->setRightToLeft(true);
-        
-        // Company header
-        $summary_sheet->mergeCells('A1:D1');
-        $summary_sheet->setCellValue('A1', $this->company_name);
-        $summary_sheet->getStyle('A1')->getFont()->setBold(true)->setSize(16);
-        $summary_sheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
-        
-        $summary_sheet->mergeCells('A2:D2');
-        $summary_sheet->setCellValue('A2', 'تقرير تقييم الأداء');
-        $summary_sheet->getStyle('A2')->getFont()->setBold(true)->setSize(14);
-        
-        // KPI Cards with merged cells
-        $row = 4;
-        $kpi_data = [
-            ['الإجمالي', $stats['total_reports'], '0070C0'],
-            ['متوسط الدرجات', round($stats['avg_score'], 1) . '%', '70AD47'],
-            ['أعلى درجة', $stats['max_score'], '0070C0'],
-            ['أقل درجة', $stats['min_score'], 'FFC000'],
-            ['موافق عليه', $stats['approved_count'], '70AD47'],
-            ['مرفوض', $stats['rejected_count'], 'C55A11'],
-            ['بانتظار', $stats['submitted_count'], 'FFC000']
-        ];
-        
-        foreach ($kpi_data as $kpi) {
-            $summary_sheet->mergeCells("A{$row}:B{$row}");
-            $summary_sheet->setCellValue("A{$row}", $kpi[0]);
-            $summary_sheet->getStyle("A{$row}")->getFill()->setFillType(PatternFill::FILL_SOLID)->getStartColor()->setRGB($kpi[2]);
-            $summary_sheet->getStyle("A{$row}")->getFont()->setColor(new RGBColor(255, 255, 255))->setBold(true);
+        if ($this->shouldIncludeSection('summary')) {
+            $spreadsheet->setActiveSheetIndex($sheetIndex);
+            $summary_sheet = $spreadsheet->getActiveSheet();
+            $summary_sheet->setTitle('الملخص');
+            $summary_sheet->setRightToLeft(true);
             
-            $summary_sheet->mergeCells("C{$row}:D{$row}");
-            $summary_sheet->setCellValue("C{$row}", $kpi[1]);
-            $summary_sheet->getStyle("C{$row}")->getFont()->setSize(12)->setBold(true);
+            $stats = $this->getSummaryStats();
             
-            $row++;
-        }
-        
-        $summary_sheet->getColumnDimension('A')->setWidth(20);
-        $summary_sheet->getColumnDimension('C')->setWidth(20);
-        
-        // ===== DETAILS SHEET =====
-        $sheet->setTitle('التقييمات');
-        
-        // Header
-        $headers = ['الموظف', 'البريد الإلكتروني', 'الإدارة', 'السنة', 'المُقيّم', 'الدرجة', 'الحالة', 'تاريخ التحديث'];
-        $sheet->fromArray($headers, null, 'A1');
-        
-        // Style header
-        $header_fill = new PatternFill(PatternFill::FILL_SOLID, '0070C0');
-        $header_font = $sheet->getStyle('A1:H1')->getFont();
-        $header_font->setBold(true)->setColor(new RGBColor(255, 255, 255));
-        $sheet->getStyle('A1:H1')->setFill($header_fill);
-        $sheet->getStyle('A1:H1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-        
-        // Add data rows with alternating colors
-        $row = 2;
-        foreach ($data as $record) {
-            $status_text = match($record['status']) {
-                'approved' => 'موافق عليه',
-                'rejected' => 'مرفوض',
-                'submitted' => 'بانتظار الاعتماد',
-                'draft' => 'مسودة',
-                default => $record['status']
-            };
+            // Company header
+            $summary_sheet->mergeCells('A1:D1');
+            $summary_sheet->setCellValue('A1', $this->company_name);
+            $summary_sheet->getStyle('A1')->getFont()->setBold(true)->setSize(16);
+            $summary_sheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
             
-            $row_data = [
-                $record['name'] ?? '',
-                $record['email'] ?? '',
-                $record['dept'] ?? '—',
-                $record['year'] ?? '',
-                $record['evaluator'] ?? '',
-                $record['total_score'] ?? '—',
-                $status_text,
-                $record['updated_at'] ?? ''
+            $summary_sheet->mergeCells('A2:D2');
+            $summary_sheet->setCellValue('A2', 'تقرير تقييم الأداء');
+            $summary_sheet->getStyle('A2')->getFont()->setBold(true)->setSize(14);
+            
+            // KPI Cards with merged cells
+            $row = 4;
+            $kpi_data = [
+                ['الإجمالي', $stats['total_reports'], '0070C0'],
+                ['متوسط الدرجات', round($stats['avg_score'], 1) . '%', '70AD47'],
+                ['أعلى درجة', $stats['max_score'], '0070C0'],
+                ['أقل درجة', $stats['min_score'], 'FFC000'],
+                ['موافق عليه', $stats['approved_count'], '70AD47'],
+                ['مرفوض', $stats['rejected_count'], 'C55A11'],
+                ['بانتظار', $stats['submitted_count'], 'FFC000']
             ];
             
-            $sheet->fromArray($row_data, null, 'A' . $row);
-            
-            // Alternating row colors
-            if ($row % 2 == 0) {
-                $sheet->getStyle('A' . $row . ':H' . $row)->getFill()
-                    ->setFillType(PatternFill::FILL_SOLID)
-                    ->getStartColor()->setRGB('F2F2F2');
+            foreach ($kpi_data as $kpi) {
+                $summary_sheet->mergeCells("A{$row}:B{$row}");
+                $summary_sheet->setCellValue("A{$row}", $kpi[0]);
+                $summary_sheet->getStyle("A{$row}")->getFill()->setFillType(PatternFill::FILL_SOLID)->getStartColor()->setRGB($kpi[2]);
+                $summary_sheet->getStyle("A{$row}")->getFont()->setColor(new RGBColor(255, 255, 255))->setBold(true);
+                
+                $summary_sheet->mergeCells("C{$row}:D{$row}");
+                $summary_sheet->setCellValue("C{$row}", $kpi[1]);
+                $summary_sheet->getStyle("C{$row}")->getFont()->setSize(12)->setBold(true);
+                
+                $row++;
             }
             
-            $row++;
+            $summary_sheet->getColumnDimension('A')->setWidth(20);
+            $summary_sheet->getColumnDimension('C')->setWidth(20);
+
+            $sheetIndex++;
         }
         
-        // Auto size columns
-        foreach (range('A', 'H') as $col) {
-            $sheet->getColumnDimension($col)->setAutoSize(true);
+        // ===== DETAILS SHEET =====
+        if ($this->shouldIncludeSection('details')) {
+            if ($sheetIndex > 0) {
+                $spreadsheet->createSheet();
+                $spreadsheet->setActiveSheetIndex($sheetIndex);
+            }
+            $sheet = $spreadsheet->getActiveSheet();
+            $sheet->setTitle('التقييمات');
+            $sheet->setRightToLeft(true);
+            
+            // Get data
+            $data = $this->getFilteredData();
+
+            // Prepare headers and column map
+            $headerMap = [
+                'name' => 'الموظف',
+                'email' => 'البريد الإلكتروني',
+                'dept' => 'الإدارة',
+                'year' => 'السنة',
+                'evaluator' => 'المُقيّم',
+                'score' => 'الدرجة',
+                'status' => 'الحالة',
+                'updated_at' => 'تاريخ التحديث'
+            ];
+            
+            $headers = [];
+            $activeColumns = [];
+            foreach ($headerMap as $key => $label) {
+                if ($this->shouldIncludeColumn($key)) {
+                    $headers[] = $label;
+                    $activeColumns[] = $key;
+                }
+            }
+
+            // Write Header
+            $sheet->fromArray($headers, null, 'A1');
+            
+            // Style header
+            $lastCol = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(count($headers));
+            $header_fill = new PatternFill(PatternFill::FILL_SOLID, '0070C0');
+            $header_font = $sheet->getStyle("A1:{$lastCol}1")->getFont();
+            $header_font->setBold(true)->setColor(new RGBColor(255, 255, 255));
+            $sheet->getStyle("A1:{$lastCol}1")->setFill($header_fill);
+            $sheet->getStyle("A1:{$lastCol}1")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            
+            // Add data rows with alternating colors
+            $row = 2;
+            foreach ($data as $record) {
+                $row_data = [];
+                foreach ($activeColumns as $colKey) {
+                    if ($colKey === 'status') {
+                        $val = match($record['status']) {
+                            'approved' => 'موافق عليه',
+                            'rejected' => 'مرفوض',
+                            'submitted' => 'بانتظار الاعتماد',
+                            'draft' => 'مسودة',
+                            default => $record['status']
+                        };
+                    } else if ($colKey === 'score') {
+                        $val = $record['total_score'] ?? '—';
+                    } else {
+                        $val = $record[$colKey] ?? ($colKey == 'dept' ? '—' : '');
+                    }
+                    $row_data[] = $val;
+                }
+                
+                $sheet->fromArray($row_data, null, 'A' . $row);
+                
+                // Alternating row colors
+                if ($row % 2 == 0) {
+                    $sheet->getStyle("A{$row}:{$lastCol}{$row}")->getFill()
+                        ->setFillType(PatternFill::FILL_SOLID)
+                        ->getStartColor()->setRGB('F2F2F2');
+                }
+                
+                $row++;
+            }
+            
+            // Auto size columns
+            foreach (range(1, count($headers)) as $colIndex) {
+                $colStr = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex);
+                $sheet->getColumnDimension($colStr)->setAutoSize(true);
+            }
         }
         
         // Clean output buffer and send file
@@ -315,81 +445,108 @@ class ExportService {
                     </td>
                 </tr>
             </table>
-        </div>
+        </div>';
         
-        <!-- Summary Section -->
-        <div class="section-title">ملخص التقارير</div>
-        <div class="kpi-container">
-            <div class="kpi-card">
-                <div class="kpi-label">إجمالي التقييمات</div>
-                <div class="kpi-value">' . $stats['total_reports'] . '</div>
-            </div>
-            <div class="kpi-card">
-                <div class="kpi-label">متوسط الدرجات</div>
-                <div class="kpi-value">' . round($stats['avg_score'], 1) . '%</div>
-            </div>
-            <div class="kpi-card">
-                <div class="kpi-label">أعلى درجة</div>
-                <div class="kpi-value">' . $stats['max_score'] . '</div>
-            </div>
-            <div class="kpi-card">
-                <div class="kpi-label">أقل درجة</div>
-                <div class="kpi-value">' . $stats['min_score'] . '</div>
-            </div>
-            <div class="kpi-card">
-                <div class="kpi-label">موافق عليه</div>
-                <div class="kpi-value">' . $stats['approved_count'] . '</div>
-            </div>
-            <div class="kpi-card">
-                <div class="kpi-label">مرفوض</div>
-                <div class="kpi-value">' . $stats['rejected_count'] . '</div>
-            </div>
-            <div class="kpi-card">
-                <div class="kpi-label">بانتظار</div>
-                <div class="kpi-value">' . $stats['submitted_count'] . '</div>
-            </div>
-        </div>
+        // Summary Section
+        if ($this->shouldIncludeSection('summary')) {
+            $html .= '
+            <div class="section-title">ملخص التقارير</div>
+            <div class="kpi-container">
+                <div class="kpi-card">
+                    <div class="kpi-label">إجمالي التقييمات</div>
+                    <div class="kpi-value">' . $stats['total_reports'] . '</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">متوسط الدرجات</div>
+                    <div class="kpi-value">' . round($stats['avg_score'], 1) . '%</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">أعلى درجة</div>
+                    <div class="kpi-value">' . $stats['max_score'] . '</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">أقل درجة</div>
+                    <div class="kpi-value">' . $stats['min_score'] . '</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">موافق عليه</div>
+                    <div class="kpi-value">' . $stats['approved_count'] . '</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">مرفوض</div>
+                    <div class="kpi-value">' . $stats['rejected_count'] . '</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">بانتظار</div>
+                    <div class="kpi-value">' . $stats['submitted_count'] . '</div>
+                </div>
+            </div>';
+        }
         
-        <!-- Details Section -->
-        <div class="section-title">تفاصيل التقييمات</div>
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th width="15%">الموظف</th>
-                    <th width="15%">البريد الإلكتروني</th>
-                    <th width="15%">الإدارة</th>
-                    <th width="10%">السنة</th>
-                    <th width="15%">المُقيّم</th>
-                    <th width="10%">الدرجة</th>
-                    <th width="10%">الحالة</th>
-                </tr>
-            </thead>
-            <tbody>';
-        
-        foreach ($data as $record) {
-            $status_text = match($record['status']) {
-                'approved' => 'موافق عليه',
-                'rejected' => 'مرفوض',
-                'submitted' => 'بانتظار',
-                'draft' => 'مسودة',
-                default => $record['status']
-            };
+        // Details Section
+        if ($this->shouldIncludeSection('details')) {
+            $html .= '<div class="section-title">تفاصيل التقييمات</div>
+            <table class="data-table">
+                <thead>
+                    <tr>';
             
-            $html .= '<tr>
-                <td class="text-right">' . htmlspecialchars($record['name'] ?? '') . '</td>
-                <td>' . htmlspecialchars($record['email'] ?? '') . '</td>
-                <td>' . htmlspecialchars($record['dept'] ?? '—') . '</td>
-                <td>' . ($record['year'] ?? '') . '</td>
-                <td>' . htmlspecialchars($record['evaluator'] ?? '') . '</td>
-                <td><strong>' . ($record['total_score'] ?? '—') . '</strong></td>
-                <td>' . $status_text . '</td>
-            </tr>';
+            // Dynamic Headers
+            $headerMap = [
+                'name' => ['الموظف', '15%'],
+                'email' => ['البريد الإلكتروني', '15%'],
+                'dept' => ['الإدارة', '15%'],
+                'year' => ['السنة', '10%'],
+                'evaluator' => ['المُقيّم', '15%'],
+                'score' => ['الدرجة', '10%'],
+                'status' => ['الحالة', '10%'],
+                'updated_at' => ['تاريخ التحديث', '10%']
+            ];
+            
+            foreach ($headerMap as $key => $info) {
+                if ($this->shouldIncludeColumn($key)) {
+                    $html .= '<th width="' . $info[1] . '">' . $info[0] . '</th>';
+                }
+            }
+            
+            $html .= '</tr>
+                </thead>
+                <tbody>';
+            
+            foreach ($data as $record) {
+                $html .= '<tr>';
+                
+                foreach ($headerMap as $key => $info) {
+                    if (!$this->shouldIncludeColumn($key)) continue;
+                    
+                    if ($key === 'status') {
+                        $val = match($record['status']) {
+                            'approved' => 'موافق عليه',
+                            'rejected' => 'مرفوض',
+                            'submitted' => 'بانتظار',
+                            'draft' => 'مسودة',
+                            default => $record['status']
+                        };
+                        $html .= '<td>' . $val . '</td>';
+                    } elseif ($key === 'score') {
+                         $html .= '<td><strong>' . ($record['total_score'] ?? '—') . '</strong></td>';
+                    } elseif ($key === 'name') {
+                        $html .= '<td class="text-right">' . htmlspecialchars($record['name'] ?? '') . '</td>';
+                    } else {
+                        $val = htmlspecialchars($record[$key] ?? '');
+                        if ($key == 'dept' && empty($val)) $val = '—';
+                        $html .= '<td>' . $val . '</td>';
+                    }
+                }
+                
+                $html .= '</tr>';
+            }
+            
+            $html .= '
+                </tbody>
+            </table>';
         }
         
         $html .= '
-            </tbody>
-        </table>
-        
         <div class="footer">
             <p>تم إنشاء هذا التقرير بواسطة نظام إدارة تقييم الأداء - ' . date('Y-m-d H:i:s') . '</p>
         </div>
@@ -468,104 +625,103 @@ class ExportService {
         $section->addTextBreak();
         
         // Summary Section
-        $section->addHeading('ملخص التقارير', 2, ['rtl' => true]);
-        
-        // KPI summary table
-        $summaryTable = $section->addTable([
-            'borderSize' => 6,
-            'borderColor' => '0070C0'
-        ]);
-        $summaryTable->setWidth(100 * 50);
-        
-        // KPI rows
-        $kpi_data = [
-            'إجمالي التقييمات' => $stats['total_reports'],
-            'متوسط الدرجات' => round($stats['avg_score'], 1) . '%',
-            'أعلى درجة' => $stats['max_score'],
-            'أقل درجة' => $stats['min_score'],
-            'موافق عليه' => $stats['approved_count'],
-            'مرفوض' => $stats['rejected_count'],
-            'بانتظار الاعتماد' => $stats['submitted_count']
-        ];
-        
-        foreach ($kpi_data as $label => $value) {
-            $row = $summaryTable->addRow();
-            $row->addCell(2400)->addText($label, ['bold' => true], ['rtl' => true]);
-            $row->addCell(2400)->addText((string)$value, ['bold' => true, 'size' => 14], ['alignment' => 'center', 'rtl' => true]);
-        }
-        
-        $section->addTextBreak();
-        
-        // Details Section
-        $section->addHeading('تفاصيل التقييمات', 2, ['rtl' => true]);
-        
-        $table = $section->addTable([
-            'borderSize' => 6,
-            'borderColor' => '000000'
-        ]);
-        $table->setWidth(100 * 50);
-        
-        // Header row
-        $headerRow = $table->addRow();
-        $headerRow->getStyle()->setBackgroundColor('0070C0');
-        
-        $headers = ['الموظف', 'البريد الإلكتروني', 'الإدارة', 'السنة', 'المُقيّم', 'الدرجة', 'الحالة'];
-        foreach ($headers as $header) {
-            $cell = $headerRow->addCell(1400);
-            $cell->addText($header, ['bold' => true, 'color' => 'FFFFFF'], ['alignment' => 'center', 'rtl' => true]);
-        }
-        
-        // Data rows
-        $row_num = 0;
-        foreach ($data as $record) {
-            $status_text = match($record['status']) {
-                'approved' => 'موافق عليه',
-                'rejected' => 'مرفوض',
-                'submitted' => 'بانتظار',
-                'draft' => 'مسودة',
-                default => $record['status']
-            };
+        if ($this->shouldIncludeSection('summary')) {
+            $section->addHeading('ملخص التقارير', 2, ['rtl' => true]);
             
-            $row = $table->addRow();
+            // KPI summary table
+            $summaryTable = $section->addTable([
+                'borderSize' => 6,
+                'borderColor' => '0070C0'
+            ]);
+            $summaryTable->setWidth(100 * 50);
             
-            // Alternating row colors
-            if ($row_num % 2 == 0) {
-                $row->getStyle()->setBackgroundColor('F2F2F2');
+            // KPI rows
+            $kpi_data = [
+                'إجمالي التقييمات' => $stats['total_reports'],
+                'متوسط الدرجات' => round($stats['avg_score'], 1) . '%',
+                'أعلى درجة' => $stats['max_score'],
+                'أقل درجة' => $stats['min_score'],
+                'موافق عليه' => $stats['approved_count'],
+                'مرفوض' => $stats['rejected_count'],
+                'بانتظار الاعتماد' => $stats['submitted_count']
+            ];
+            
+            foreach ($kpi_data as $label => $value) {
+                $row = $summaryTable->addRow();
+                $row->addCell(2400)->addText($label, ['bold' => true], ['rtl' => true]);
+                $row->addCell(2400)->addText((string)$value, ['bold' => true, 'size' => 14], ['alignment' => 'center', 'rtl' => true]);
             }
             
-            $row->addCell(1400)->addText(htmlspecialchars($record['name'] ?? ''), [], ['rtl' => true]);
-            $row->addCell(1400)->addText(htmlspecialchars($record['email'] ?? ''), [], ['rtl' => true]);
-            $row->addCell(1400)->addText(htmlspecialchars($record['dept'] ?? '—'), [], ['alignment' => 'center', 'rtl' => true]);
-            $row->addCell(1400)->addText((string)($record['year'] ?? ''), [], ['alignment' => 'center', 'rtl' => true]);
-            $row->addCell(1400)->addText(htmlspecialchars($record['evaluator'] ?? ''), [], ['rtl' => true]);
-            $row->addCell(1400)->addText((string)($record['total_score'] ?? '—'), ['bold' => true], ['alignment' => 'center', 'rtl' => true]);
-            $row->addCell(1400)->addText($status_text, [], ['alignment' => 'center', 'rtl' => true]);
-            
-            $row_num++;
+            $section->addTextBreak();
         }
         
-        $section->addTextBreak(2);
-        
-        // Footer
-        $footer = $section->addFooter();
-        $footer->addText(
-            'تم إنشاء هذا التقرير بواسطة نظام إدارة تقييم الأداء - ' . date('Y-m-d H:i:s'),
-            ['size' => 10, 'color' => '999999'],
-            ['alignment' => 'center', 'rtl' => true]
-        );
+        // Details Section
+        if ($this->shouldIncludeSection('details')) {
+            $section->addHeading('تفاصيل التقييمات', 2, ['rtl' => true]);
+            
+            $tableStyle = [
+                'borderSize' => 6, 
+                'borderColor' => '999999', 
+                'cellMargin' => 50
+            ];
+            $phpWord->addTableStyle('Data Table', $tableStyle);
+            $table = $section->addTable('Data Table');
+            
+            // Headers
+            $headerMap = [
+                'name' => 'الموظف',
+                'email' => 'البريد',
+                'dept' => 'الإدارة',
+                'year' => 'السنة',
+                'evaluator' => 'المُقيّم',
+                'score' => 'الدرجة',
+                'status' => 'الحالة',
+                'updated_at' => 'التحديث'
+            ];
+            
+            $table->addRow();
+            foreach ($headerMap as $key => $label) {
+                if ($this->shouldIncludeColumn($key)) {
+                    $table->addCell(2000, ['bgColor' => '0070C0'])->addText($label, ['bold' => true, 'color' => 'FFFFFF'], ['rtl' => true, 'alignment' => 'center']);
+                }
+            }
+            
+            foreach ($data as $record) {
+                $table->addRow();
+                foreach ($headerMap as $key => $label) {
+                    if (!$this->shouldIncludeColumn($key)) continue;
+
+                    if ($key === 'status') {
+                        $val = match($record['status']) {
+                            'approved' => 'موافق',
+                            'rejected' => 'مرفوض',
+                            'submitted' => 'انتظار',
+                            'draft' => 'مسودة',
+                            default => $record['status']
+                        };
+                    } else if ($key === 'score') {
+                         $val = $record['total_score'] ?? '—';
+                    } else {
+                        $val = $record[$key] ?? ($key == 'dept' ? '—' : '');
+                    }
+                    
+                    $table->addCell(2000)->addText($val, [], ['rtl' => true, 'alignment' => 'center']);
+                }
+            }
+        }
         
         // Clean output buffer and send file
         if (ob_get_length()) ob_clean();
         
-        $filename = 'evaluation_report_' . date('Y-m-d') . '.docx';
-        
+        header('Content-Description: File Transfer');
         header('Content-Type: application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-        header('Content-Disposition: attachment;filename="' . $filename . '"');
-        header('Cache-Control: max-age=0');
+        header('Content-Disposition: attachment; filename="evaluation_report_' . date('Y-m-d') . '.docx"');
+        header('Content-Transfer-Encoding: binary');
+        header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
+        header('Expires: 0');
         
         $objWriter = \PhpOffice\PhpWord\IOFactory::createWriter($phpWord, 'Word2007');
         $objWriter->save('php://output');
         exit;
     }
 }
-?>
