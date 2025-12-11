@@ -21,13 +21,16 @@ $logout_path = isset($logout_path) ? $logout_path : '../logout.php';
     <a href="<?= $nav_path ?>evaluation-fields.php" class="<?= $current_page === 'evaluation-fields.php' ? 'active' : '' ?>">
         <i class="fas fa-list"></i> مجالات التقييم
     </a>
+    <a href="<?= $nav_path ?>analytics-dashboard.php" class="<?= $current_page === 'analytics-dashboard.php' ? 'active' : '' ?>">
+        <i class="fas fa-chart-line"></i> لوحة تحليل الأداء
+    </a>
     <a href="<?= $nav_path ?>reports.php" class="<?= $current_page === 'reports.php' ? 'active' : '' ?>">
         <i class="fas fa-chart-bar"></i> التقارير والإحصائيات
     </a>
-	    <a href="<?= $nav_path ?>bulk_email.php" class="<?= $current_page === 'bulk_email.php' ? 'active' : '' ?>">
+        <a href="<?= $nav_path ?>bulk_email.php" class="<?= $current_page === 'bulk_email.php' ? 'active' : '' ?>">
         <i class="fas fa-mail-bulk"></i> الإرسال الجماعي
     </a>
-	<a href="<?= $nav_path ?>reminders.php" class="<?= $current_page === 'reminders.php' ? 'active' : '' ?>">
+    <a href="<?= $nav_path ?>reminders.php" class="<?= $current_page === 'reminders.php' ? 'active' : '' ?>">
         <i class="fas fa-bullhorn"></i> نظام التذكير
     </a>
     <a href="<?= $nav_path ?>settings.php" class="<?= $current_page === 'settings.php' ? 'active' : '' ?>">
@@ -39,10 +42,10 @@ $logout_path = isset($logout_path) ? $logout_path : '../logout.php';
     <a href="<?= $nav_path ?>activity_logs.php" class="<?= $current_page === 'activity_logs.php' ? 'active' : '' ?>">
         <i class="fas fa-history"></i> سجل النشاطات
     </a>
-	<a href="<?= $nav_path ?>org_chart.php" class="<?= $current_page === 'org_chart.php' ? 'active' : '' ?>">
+    <a href="<?= $nav_path ?>org_chart.php" class="<?= $current_page === 'org_chart.php' ? 'active' : '' ?>">
         <i class="fas fa-sitemap"></i> الهيكل التنظيمي
     </a>
-	
+    
     <a href="javascript:void(0);" onclick="document.getElementById('logout-form').submit();" class="logout-link">
         <i class="fas fa-sign-out-alt"></i> تسجيل الخروج
     </a>
