@@ -32,10 +32,10 @@ require_once '../../app/core/db.php';
 $departments = $pdo->query("SELECT id, name_ar FROM departments WHERE status = 'active' ORDER BY name_ar")->fetchAll();
 
 // جلب قائمة دورات التقييم
-$cycles = $pdo->query("SELECT id, year, title FROM evaluation_cycles ORDER BY year DESC")->fetchAll();
+$cycles = $pdo->query("SELECT id, year FROM evaluation_cycles ORDER BY year DESC")->fetchAll();
 
 // تحديد الدورة النشطة كافتراضية
-$current_cycle = $pdo->query("SELECT id, year, title FROM evaluation_cycles WHERE status = 'active' ORDER BY year DESC LIMIT 1")->fetch();
+$current_cycle = $pdo->query("SELECT id, year FROM evaluation_cycles WHERE status = 'active' ORDER BY year DESC LIMIT 1")->fetch();
 $current_cycle_id = $current_cycle ? $current_cycle['id'] : null;
 ?>
 <!DOCTYPE html>
@@ -99,7 +99,7 @@ require_once '_sidebar_nav.php';
                             <option value="">جميع الدورات</option>
                             <?php foreach ($cycles as $cycle): ?>
                                 <option value="<?= $cycle['id'] ?>" <?= ($current_cycle_id == $cycle['id']) ? 'selected' : '' ?>>
-                                    <?= htmlspecialchars($cycle['year'] . ' - ' . $cycle['title']) ?>
+                                    <?= htmlspecialchars($cycle['year']) ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
