@@ -1,6 +1,19 @@
 <?php
+// بدء الجلسة للـ CSRF protection
+session_start();
+
 // تأكد من أن ملف db.php يقوم بإنشاء اتصال PDO ويخزنه في المتغير $pdo
 require_once '../app/core/db.php';
+
+// توليد CSRF token إذا لم يكن موجوداً
+if (empty($_SESSION['csrf_token'])) {
+    try {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    } catch (Exception $e) {
+        $_SESSION['csrf_token'] = bin2hex(openssl_random_pseudo_bytes(32));
+    }
+}
+$csrf_token = $_SESSION['csrf_token'];
 
 // 1. التحقق الأساسي من وجود التوكن
 if (!isset($_GET['token']) || empty($_GET['token'])) {
@@ -37,6 +50,11 @@ if ($eval['expires_at'] && strtotime($eval['expires_at']) < time()) {
 
 // 3. معالجة طلبات POST
 if ($_POST && isset($_POST['action'])) {
+    // التحقق من CSRF token
+    if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $csrf_token) {
+        die('خطأ أمني: طلب غير صالح (CSRF token mismatch)');
+    }
+    
     $action = $_POST['action'];
 
     if ($action === 'approve') {
@@ -51,7 +69,9 @@ if ($_POST && isset($_POST['action'])) {
             $pdo->prepare("INSERT INTO notifications (user_id, title, message, type) VALUES (?, ?, ?, 'info')")->execute([$eval['manager_id'], "تمت الموافقة على تقييم موظف", "وافق {$eval['employee_name']} على التقييم."]);
         }
         
-        $evaluators = $pdo->query("SELECT id FROM users WHERE role = 'evaluator'")->fetchAll(PDO::FETCH_COLUMN);
+        $stmt_evaluators = $pdo->prepare("SELECT id FROM users WHERE role = ?");
+        $stmt_evaluators->execute(['evaluator']);
+        $evaluators = $stmt_evaluators->fetchAll(PDO::FETCH_COLUMN);
         foreach ($evaluators as $ev_id) {
             $pdo->prepare("INSERT INTO notifications (user_id, title, message, type) VALUES (?, ?, ?, 'info')")->execute([$ev_id, "تمت الموافقة على تقييم موظف", "وافق {$eval['employee_name']} على التقييم."]);
         }
@@ -65,12 +85,17 @@ if ($_POST && isset($_POST['action'])) {
         if ($eval['manager_id']) {
             $pdo->prepare("INSERT INTO notifications (user_id, title, message, type) VALUES (?, ?, ?, 'warning')")->execute([$eval['manager_id'], "تم رفض تقييم موظف", "رفض {$eval['employee_name']} التقييم."]);
         }
-         $evaluators = $pdo->query("SELECT id FROM users WHERE role = 'evaluator'")->fetchAll(PDO::FETCH_COLUMN);
+        $stmt_evaluators_reject = $pdo->prepare("SELECT id FROM users WHERE role = ?");
+        $stmt_evaluators_reject->execute(['evaluator']);
+        $evaluators = $stmt_evaluators_reject->fetchAll(PDO::FETCH_COLUMN);
         foreach ($evaluators as $ev_id) {
             $pdo->prepare("INSERT INTO notifications (user_id, title, message, type) VALUES (?, ?, ?, 'warning')")->execute([$ev_id, "تم رفض تقييم موظف", "رفض {$eval['employee_name']} التقييم."]);
         }
     }
 
+    // إعادة توليد CSRF token بعد معالجة الطلب
+    unset($_SESSION['csrf_token']);
+    
     header("Location: view-evaluation.php?token=" . urlencode($token));
     exit;
 }
@@ -226,10 +251,10 @@ $logo_path = $system_settings['logo_path'] ?? 'logo.png';
         
         <div class="mt-3">
         
-			<a href="generate_pdf.php?token=<?= htmlspecialchars($token) ?>" class="btn btn-danger">
+            <a href="generate_pdf.php?token=<?= htmlspecialchars($token) ?>" class="btn btn-danger">
     <i class="fas fa-file-pdf"></i> تحميل التقرير (PDF)
 </a>
-			
+            
         </div>
     </div>
 
@@ -396,10 +421,12 @@ $logo_path = $system_settings['logo_path'] ?? 'logo.png';
     <?php if ($eval['status'] == 'submitted'): ?>
     <div class="text-center no-print mt-4 mb-5">
         <form method="POST" style="display: inline;">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
             <input type="hidden" name="action" value="approve">
             <button type="submit" class="btn btn-success btn-lg mx-2"><i class="fas fa-check"></i> موافقة واعتماد</button>
         </form>
         <form method="POST" style="display: inline;">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
             <input type="hidden" name="action" value="reject">
             <button type="submit" class="btn btn-danger btn-lg mx-2"><i class="fas fa-times"></i> رفض وإعادة</button>
         </form>

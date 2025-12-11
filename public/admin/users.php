@@ -213,13 +213,27 @@ if (isset($_GET['export']) && $_GET['export'] === 'excel') {
 }
 
 // --- الحذف ---
-if (isset($_GET['delete'])) {
-    $pdo->prepare("DELETE FROM users WHERE id = ?")->execute([$_GET['delete']]);
-	// (جديد) تسجيل النشاط
-$logger->log('delete', "تم حذف بيانات المستخدم رقم: $id");
-////////////
-    header('Location: users.php?msg=deleted');
-    exit;
+// تم إزالة الحذف عبر GET - يجب استخدام POST مع CSRF
+if (isset($_POST['delete_user']) && isset($_POST['user_id'])) {
+    // التحقق من CSRF token
+    if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $csrf_token) {
+        $error = "خطأ أمني: طلب حذف غير صالح (CSRF).";
+    } else {
+        unset($_SESSION['csrf_token']);
+        
+        $id = (int)$_POST['user_id'];
+        $pdo->prepare("DELETE FROM users WHERE id = ?")->execute([$id]);
+        
+        // تسجيل النشاط
+        $logger->log('delete', "تم حذف بيانات المستخدم رقم: $id");
+        
+        // توليد CSRF token جديد
+        try { $new_csrf_token = bin2hex(random_bytes(32)); } catch (Exception $e) {}
+        $_SESSION['csrf_token'] = $new_csrf_token;
+        
+        header('Location: users.php?msg=deleted');
+        exit;
+    }
 }
 
 // --- التعديل ---
@@ -737,7 +751,11 @@ require_once '_sidebar_nav.php';
                                             <i class="fas fa-history"></i>
                                         </a>
 
-                                        <a href="?delete=<?= $u['id'] ?>" class="btn btn-sm btn-danger" onclick="return confirm('هل أنت متأكد؟')"><i class="fas fa-trash"></i></a>
+                                        <form method="POST" style="display: inline;" onsubmit="return confirm('هل أنت متأكد من حذف هذا المستخدم؟')">
+                                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
+                                            <input type="hidden" name="user_id" value="<?= $u['id'] ?>">
+                                            <button type="submit" name="delete_user" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
+                                        </form>
                                     </td>
                                 </tr>
                                 <?php endforeach; ?>
@@ -829,7 +847,7 @@ require_once '_sidebar_nav.php';
                                             'employee' => 'موظف',
                                             default => $u['role']
                                         } ?>
-										</small>
+                                        </small>
                                     </td>
                                     <td><small><?= $u['dept_name'] ?? '—' ?></small></td>
                                     <td><?= $u['manager_name'] ?? '—' ?></td>
@@ -846,7 +864,11 @@ require_once '_sidebar_nav.php';
                                             <i class="fas fa-history"></i>
                                         </a>
 
-                                        <a href="?delete=<?= $u['id'] ?>" class="btn btn-sm btn-danger" onclick="return confirm('هل أنت متأكد؟')"><i class="fas fa-trash"></i></a>
+                                        <form method="POST" style="display: inline;" onsubmit="return confirm('هل أنت متأكد من حذف هذا المستخدم؟')">
+                                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
+                                            <input type="hidden" name="user_id" value="<?= $u['id'] ?>">
+                                            <button type="submit" name="delete_user" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
+                                        </form>
                                     </td>
                                 </tr>
                                 <?php endforeach; ?>

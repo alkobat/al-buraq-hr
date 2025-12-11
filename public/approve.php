@@ -1,9 +1,22 @@
 <?php
+// بدء الجلسة للـ CSRF protection
+session_start();
+
 require_once '../app/core/db.php';
 
 if (!isset($_GET['token']) || empty($_GET['token'])) {
     die('رابط غير صالح');
 }
+
+// توليد CSRF token إذا لم يكن موجوداً
+if (empty($_SESSION['csrf_token'])) {
+    try {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    } catch (Exception $e) {
+        $_SESSION['csrf_token'] = bin2hex(openssl_random_pseudo_bytes(32));
+    }
+}
+$csrf_token = $_SESSION['csrf_token'];
 
 $token = $_GET['token'];
 $stmt = $pdo->prepare("
@@ -32,9 +45,14 @@ $responses = $pdo->prepare("
 $responses->execute([$eval['id']]);
 $details = $responses->fetchAll();
 
-// جلب نقاط القوة والضعف (إن وجدت)
-$strengths = $pdo->query("SELECT description FROM strengths_weaknesses WHERE evaluation_id = {$eval['id']} AND type = 'strength'")->fetchAll();
-$weaknesses = $pdo->query("SELECT description FROM strengths_weaknesses WHERE evaluation_id = {$eval['id']} AND type = 'weakness'")->fetchAll();
+// جلب نقاط القوة والضعف (إن وجدت) - إصلاح SQL Injection
+$stmt_strengths = $pdo->prepare("SELECT description FROM strengths_weaknesses WHERE evaluation_id = ? AND type = 'strength'");
+$stmt_strengths->execute([$eval['id']]);
+$strengths = $stmt_strengths->fetchAll();
+
+$stmt_weaknesses = $pdo->prepare("SELECT description FROM strengths_weaknesses WHERE evaluation_id = ? AND type = 'weakness'");
+$stmt_weaknesses->execute([$eval['id']]);
+$weaknesses = $stmt_weaknesses->fetchAll();
 
 // جلب المجالات النصية الجديدة
 $text_fields = $pdo->prepare("
@@ -49,6 +67,11 @@ $text_responses = $text_fields->fetchAll();
 
 // === معالجة الموافقة أو الرفض ===
 if ($_POST && isset($_POST['action'])) {
+    // التحقق من CSRF token
+    if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $csrf_token) {
+        die('خطأ أمني: طلب غير صالح (CSRF token mismatch)');
+    }
+    
     $action = $_POST['action'];
     
     if ($action === 'approve') {
@@ -74,7 +97,9 @@ if ($_POST && isset($_POST['action'])) {
         }
         
         // === إرسال إشعار لمسؤول التقييمات ===
-        $evaluators = $pdo->query("SELECT id FROM users WHERE role = 'evaluator'")->fetchAll(PDO::FETCH_COLUMN);
+        $stmt_evaluators = $pdo->prepare("SELECT id FROM users WHERE role = ?");
+        $stmt_evaluators->execute(['evaluator']);
+        $evaluators = $stmt_evaluators->fetchAll(PDO::FETCH_COLUMN);
         foreach ($evaluators as $ev_id) {
             $notification_title_eval = "تمت الموافقة على تقييم موظف";
             $notification_message_eval = "تمت الموافقة على تقييم {$eval['employee_name']} من قبل {$eval['evaluator_name']}.";
@@ -83,6 +108,9 @@ if ($_POST && isset($_POST['action'])) {
                 VALUES (?, ?, ?, 'info')
             ")->execute([$ev_id, $notification_title_eval, $notification_message_eval]);
         }
+        
+        // إعادة توليد CSRF token بعد معالجة الطلب
+        unset($_SESSION['csrf_token']);
         
         header("Location: approve.php?token=$token&action=approved");
         exit;
@@ -109,7 +137,9 @@ if ($_POST && isset($_POST['action'])) {
         }
         
         // === إرسال إشعار لمسؤول التقييمات ===
-        $evaluators = $pdo->query("SELECT id FROM users WHERE role = 'evaluator'")->fetchAll(PDO::FETCH_COLUMN);
+        $stmt_evaluators_reject = $pdo->prepare("SELECT id FROM users WHERE role = ?");
+        $stmt_evaluators_reject->execute(['evaluator']);
+        $evaluators = $stmt_evaluators_reject->fetchAll(PDO::FETCH_COLUMN);
         foreach ($evaluators as $ev_id) {
             $notification_title_eval = "تم رفض تقييم موظف";
             $notification_message_eval = "تم رفض تقييم {$eval['employee_name']} من قبل {$eval['evaluator_name']}.";
@@ -118,6 +148,9 @@ if ($_POST && isset($_POST['action'])) {
                 VALUES (?, ?, ?, 'warning')
             ")->execute([$ev_id, $notification_title_eval, $notification_message_eval]);
         }
+        
+        // إعادة توليد CSRF token بعد معالجة الطلب
+        unset($_SESSION['csrf_token']);
         
         header("Location: approve.php?token=$token&action=rejected");
         exit;
@@ -238,12 +271,14 @@ if (isset($_GET['action'])) {
     <?php if ($eval['status'] == 'submitted'): ?>
     <div class="text-center">
         <form method="POST" style="display: inline;">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
             <input type="hidden" name="action" value="approve">
             <button type="submit" class="btn btn-success mx-2">
                 <i class="fas fa-check-circle"></i> أوفق
             </button>
         </form>
         <form method="POST" style="display: inline;">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
             <input type="hidden" name="action" value="reject">
             <button type="submit" class="btn btn-danger mx-2">
                 <i class="fas fa-times-circle"></i> أرفض
