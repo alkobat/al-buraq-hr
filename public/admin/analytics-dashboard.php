@@ -50,6 +50,9 @@ $current_cycle_id = $current_cycle ? $current_cycle['id'] : null;
     <link rel="stylesheet" href="../assets/css/analytics-dashboard.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-matrix@2.0.1/dist/chartjs-chart-matrix.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+    <script src="../assets/js/analytics-charts.js"></script>
 </head>
 <body class="admin-dashboard">
 
@@ -250,24 +253,72 @@ require_once '_sidebar_nav.php';
     </div>
 
     <!-- Charts Section -->
-    <div class="row mb-4" id="chartsSection" style="display: none;">
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0"><i class="fas fa-chart-doughnut"></i> توزيع حالات التقييم</h5>
+    <div id="chartsSection" style="display: none;">
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-chart-doughnut"></i> توزيع حالات التقييم</h5>
+                    </div>
+                    <div class="card-body">
+                        <div style="position: relative; height: 250px;">
+                            <canvas id="statusChart"></canvas>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <canvas id="statusChart" width="400" height="300"></canvas>
+            </div>
+            <div class="col-md-8">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-chart-line"></i> اتجاهات الأداء</h5>
+                    </div>
+                    <div class="card-body">
+                        <div style="position: relative; height: 250px;">
+                            <canvas id="trendsChart"></canvas>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0"><i class="fas fa-chart-line"></i> اتجاهات الأداء</h5>
+
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-chart-bar"></i> مقارنة الإدارات</h5>
+                    </div>
+                    <div class="card-body">
+                        <div style="position: relative; height: 300px;">
+                            <canvas id="departmentChart"></canvas>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <canvas id="trendsChart" width="400" height="300"></canvas>
+            </div>
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-project-diagram"></i> تحليل الجدارات</h5>
+                    </div>
+                    <div class="card-body">
+                        <div style="position: relative; height: 300px;">
+                            <canvas id="radarChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-th"></i> مصفوفة الأداء</h5>
+                    </div>
+                    <div class="card-body">
+                        <div style="position: relative; height: 400px;">
+                            <canvas id="heatmapChart"></canvas>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -420,10 +471,6 @@ require_once '_sidebar_nav.php';
 
 <!-- Chart Scripts -->
 <script>
-// Global variables
-let statusChart = null;
-let trendsChart = null;
-
 // Initialize dashboard when page loads
 document.addEventListener('DOMContentLoaded', function() {
     setupEventListeners();
@@ -489,8 +536,12 @@ function loadAnalyticsData() {
         if (data.success && data.data) {
             // Update dashboard sections
             updateKPICards(data.data.global_stats || {});
-            updateStatusChart(data.data.status_distribution || []);
-            updateTrendsChart(data.data.trends || {});
+            
+            // Update all charts using the new module
+            if (window.AnalyticsCharts) {
+                window.AnalyticsCharts.update(data.data);
+            }
+            
             updateDepartmentsTable(data.data.departments || []);
             updateTopBottomPerformers(data.data.top_performers || [], data.data.bottom_performers || []);
             updatePerformanceBadges(data.data);
@@ -549,108 +600,6 @@ function updateKPICards(globalStats) {
     document.getElementById('totalEmployees').textContent = globalStats.total_employees || '0';
 }
 
-// Update Status Distribution Chart
-function updateStatusChart(statusData) {
-    const ctx = document.getElementById('statusChart').getContext('2d');
-    
-    if (statusChart) {
-        statusChart.destroy();
-    }
-
-    const labels = statusData.map(item => {
-        const statusMap = {
-            'approved': 'معتمد',
-            'submitted': 'مرسل',
-            'rejected': 'مرفوض',
-            'draft': 'مسودة'
-        };
-        return statusMap[item.status] || item.status;
-    });
-    
-    const data = statusData.map(item => item.count);
-    const colors = ['#28a745', '#ffc107', '#dc3545', '#6c757d'];
-
-    statusChart = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: labels,
-            datasets: [{
-                data: data,
-                backgroundColor: colors,
-                borderWidth: 0
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'bottom'
-                }
-            }
-        }
-    });
-}
-
-// Update Trends Chart
-function updateTrendsChart(trendsData) {
-    const ctx = document.getElementById('trendsChart').getContext('2d');
-    
-    if (trendsChart) {
-        trendsChart.destroy();
-    }
-
-    const monthlyData = trendsData.monthly || [];
-    const labels = monthlyData.map(item => item.period);
-    const evaluationCounts = monthlyData.map(item => item.evaluation_count);
-    const avgScores = monthlyData.map(item => item.avg_score);
-
-    trendsChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [
-                {
-                    label: 'عدد التقييمات',
-                    data: evaluationCounts,
-                    borderColor: '#007bff',
-                    backgroundColor: 'rgba(0, 123, 255, 0.1)',
-                    yAxisID: 'y'
-                },
-                {
-                    label: 'متوسط النقاط',
-                    data: avgScores,
-                    borderColor: '#28a745',
-                    backgroundColor: 'rgba(40, 167, 69, 0.1)',
-                    yAxisID: 'y1'
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: {
-                mode: 'index',
-                intersect: false,
-            },
-            scales: {
-                y: {
-                    type: 'linear',
-                    display: true,
-                    position: 'left',
-                },
-                y1: {
-                    type: 'linear',
-                    display: true,
-                    position: 'right',
-                    grid: {
-                        drawOnChartArea: false,
-                    },
-                }
-            }
-        }
-    });
-}
 
 // Update Departments Table
 function updateDepartmentsTable(departmentsData) {
