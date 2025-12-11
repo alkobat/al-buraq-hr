@@ -1,8 +1,9 @@
 <?php
-// === جمل use لمكتبة Excel ===
+// === جمل use لمكتبات التصدير ===
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use App\ExportService;
 
 session_start();
 
@@ -25,6 +26,7 @@ if (empty($_SESSION['logout_csrf_token'])) {
 $logout_csrf_token = $_SESSION['logout_csrf_token'];
 
 require_once '../../app/core/db.php';
+require_once '../../app/core/ExportService.php';
 
 // --- إعداد الفلاتر ---
 $cycles = $pdo->query("SELECT * FROM evaluation_cycles ORDER BY year DESC")->fetchAll();
@@ -64,64 +66,32 @@ if ($filter_status) {
     // $sql_base .= " AND e.status IN ('approved', 'rejected', 'submitted')"; 
 }
 
-// --- معالجة التصدير إلى Excel ---
-if (isset($_GET['export']) && $_GET['export'] === 'excel') {
-    // تنظيف مخزن الإخراج لمنع تلف الملف
-    if (ob_get_length()) ob_clean();
-
-    if (!class_exists('PhpOffice\\PhpSpreadsheet\\Spreadsheet')) {
-        die('مكتبة Excel غير موجودة.');
-    }
-
-    $spreadsheet = new Spreadsheet();
-    $sheet = $spreadsheet->getActiveSheet();
-    $sheet->setRightToLeft(true);
-
-    // العناوين
-    $headers = ['الموظف', 'البريد الإلكتروني', 'الإدارة', 'دورة التقييم', 'المُقيّم', 'الدرجة', 'الحالة', 'تاريخ التحديث'];
-    $sheet->fromArray($headers, NULL, 'A1');
-
-    // جلب البيانات للتصدير
-    $sql_export = "SELECT u.name, u.email, d.name_ar as dept, c.year, ev.name as evaluator, e.total_score, e.status, e.updated_at " . $sql_base . " ORDER BY e.updated_at DESC";
-    $stmt = $pdo->prepare($sql_export);
-    $stmt->execute($params);
+// --- معالجة التصدير إلى صيغ متعددة ---
+if (isset($_GET['export'])) {
+    $export_type = $_GET['export'];
     
-    $row = 2;
-    while ($r = $stmt->fetch()) {
-        $status_text = match($r['status']) {
-            'approved' => 'موافق عليه',
-            'rejected' => 'مرفوض',
-            'submitted' => 'بانتظار الاعتماد',
-		    'draft' => 'مسودة',
-            default => $r['status']
-        };
-        
-        $data = [
-            $r['name'],
-            $r['email'],
-            $r['dept'] ?? '—',
-            $r['year'],
-            $r['evaluator'],
-            $r['total_score'] ?? '—',
-            $status_text,
-            $r['updated_at']
-        ];
-        $sheet->fromArray($data, NULL, 'A' . $row);
-        $row++;
-    }
+    // إنشاء خدمة التصدير وتعيين الفلاتر
+    $exportService = new ExportService();
+    $exportService->setFilters($filter_cycle, $filter_dept, $filter_status);
     
-    // تنسيق تلقائي للأعمدة
-    foreach (range('A', 'H') as $col) {
-        $sheet->getColumnDimension($col)->setAutoSize(true);
+    // تنفيذ التصدير حسب النوع
+    try {
+        switch ($export_type) {
+            case 'excel':
+                $exportService->exportExcel();
+                break;
+            case 'pdf':
+                $exportService->exportPdf();
+                break;
+            case 'word':
+                $exportService->exportWord();
+                break;
+            default:
+                die('صيغة التصدير غير معروفة');
+        }
+    } catch (Exception $e) {
+        die('خطأ أثناء التصدير: ' . htmlspecialchars($e->getMessage()));
     }
-
-    header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    header('Content-Disposition: attachment;filename="evaluation_report_' . date('Y-m-d') . '.xlsx"');
-    header('Cache-Control: max-age=0');
-
-    $writer = new Xlsx($spreadsheet);
-    $writer->save('php://output');
-    exit;
 }
 
 // --- جلب البيانات للعرض ---
@@ -173,9 +143,17 @@ require_once '_sidebar_nav.php';
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h3><i class="fas fa-chart-line"></i> التقارير والإحصائيات</h3>
         
-        <a href="?export=excel&cycle=<?= htmlspecialchars($filter_cycle) ?>&dept=<?= htmlspecialchars($filter_dept) ?>&status=<?= htmlspecialchars($filter_status) ?>" class="btn btn-success">
-            <i class="fas fa-file-excel"></i> تصدير النتائج (Excel)
-        </a>
+        <div class="btn-group" role="group">
+            <a href="?export=excel&cycle=<?= htmlspecialchars($filter_cycle) ?>&dept=<?= htmlspecialchars($filter_dept) ?>&status=<?= htmlspecialchars($filter_status) ?>" class="btn btn-success" title="تصدير إلى Excel">
+                <i class="fas fa-file-excel"></i> Excel
+            </a>
+            <a href="?export=pdf&cycle=<?= htmlspecialchars($filter_cycle) ?>&dept=<?= htmlspecialchars($filter_dept) ?>&status=<?= htmlspecialchars($filter_status) ?>" class="btn btn-danger" title="تصدير إلى PDF">
+                <i class="fas fa-file-pdf"></i> PDF
+            </a>
+            <a href="?export=word&cycle=<?= htmlspecialchars($filter_cycle) ?>&dept=<?= htmlspecialchars($filter_dept) ?>&status=<?= htmlspecialchars($filter_status) ?>" class="btn btn-primary" title="تصدير إلى Word">
+                <i class="fas fa-file-word"></i> Word
+            </a>
+        </div>
     </div>
     <hr>
     
@@ -210,7 +188,7 @@ require_once '_sidebar_nav.php';
                         <option value="approved" <?= $filter_status == 'approved' ? 'selected' : '' ?>>موافق عليه (Approved)</option>
                         <option value="rejected" <?= $filter_status == 'rejected' ? 'selected' : '' ?>>مرفوض (Rejected)</option>
                         <option value="submitted" <?= $filter_status == 'submitted' ? 'selected' : '' ?>>بانتظار الاعتماد (Submitted)</option>
-			            <option value="draft" <?= $filter_status == 'draft' ? 'selected' : '' ?>>مسودة (draft)</option>
+                        <option value="draft" <?= $filter_status == 'draft' ? 'selected' : '' ?>>مسودة (draft)</option>
                     </select>
                 </div>
                 <div class="col-md-3 d-flex align-items-end">
@@ -313,7 +291,7 @@ require_once '_sidebar_nav.php';
                                 ?>
                                 <span class="badge bg-<?= $badge_color ?>"><?= $status_label ?></span>
                             </td>
-	 <td>
+     <td>
                                 <?php 
                                 // جلب التوكن لعرض الرابط
                                 $token_stmt = $pdo->prepare("SELECT unique_token FROM employee_evaluation_links WHERE employee_id = ? AND cycle_id = ?");
@@ -329,7 +307,7 @@ require_once '_sidebar_nav.php';
                                                     <i class="fas fa-spinner fa-spin"></i> يُقيم...
                                                 </button>
                                 <?php endif; ?>
-                            </td>						
+                            </td>                        
                         </tr>
                         <?php endforeach; ?>
                     </tbody>
