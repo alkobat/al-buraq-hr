@@ -15,9 +15,10 @@ use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Color;
+use PhpOffice\PhpSpreadsheet\Style\Color as SpreadsheetColor;
 use PhpOffice\PhpWord\PhpWord;
 use PhpOffice\PhpWord\Shared\Inches;
-use PhpOffice\PhpWord\Shared\RGBColor;
+use PhpOffice\PhpWord\Style\Language;
 
 class ExportService {
     private $pdo;
@@ -261,7 +262,7 @@ class ExportService {
                 $summary_sheet->mergeCells("A{$row}:B{$row}");
                 $summary_sheet->setCellValue("A{$row}", $kpi[0]);
                 $summary_sheet->getStyle("A{$row}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB($kpi[2]);
-                $summary_sheet->getStyle("A{$row}")->getFont()->setColor(new RGBColor(255, 255, 255))->setBold(true);
+                $summary_sheet->getStyle("A{$row}")->getFont()->setColor(new SpreadsheetColor(SpreadsheetColor::COLOR_WHITE))->setBold(true);
                 
                 $summary_sheet->mergeCells("C{$row}:D{$row}");
                 $summary_sheet->setCellValue("C{$row}", $kpi[1]);
@@ -319,7 +320,7 @@ class ExportService {
             $header_fill->setFillType(Fill::FILL_SOLID);
             $header_fill->getStartColor()->setRGB('0070C0');
             $header_font = $sheet->getStyle("A1:{$lastCol}1")->getFont();
-            $header_font->setBold(true)->setColor(new RGBColor(255, 255, 255));
+            $header_font->setBold(true)->setColor(new SpreadsheetColor(SpreadsheetColor::COLOR_WHITE));
             $sheet->getStyle("A1:{$lastCol}1")->setFill($header_fill);
             $sheet->getStyle("A1:{$lastCol}1")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
             
@@ -587,7 +588,8 @@ class ExportService {
         $phpWord = new PhpWord();
         
         // Set RTL for document
-        $phpWord->getSettings()->setThemeFontLang('ar');
+        $language = new Language(null, null, 'ar-SA');
+        $phpWord->getSettings()->setThemeFontLang($language);
         
         // Add section
         $section = $phpWord->addSection([
