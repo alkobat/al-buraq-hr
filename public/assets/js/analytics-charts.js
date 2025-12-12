@@ -453,11 +453,33 @@ const AnalyticsCharts = (function() {
         parent.appendChild(div);
     }
 
+    /**
+     * Toggle between Score and Completion Rate in Department Chart
+     * @param {boolean} showCompletion - Whether to show completion rate
+     */
+    function toggleDepartmentMetric(showCompletion) {
+        if (!charts.department) return;
+
+        // Dataset 0: Average Score
+        // Dataset 1: Completion Rate
+        
+        if (showCompletion) {
+            charts.department.hide(0);
+            charts.department.show(1);
+        } else {
+            charts.department.show(0);
+            charts.department.hide(1);
+        }
+        
+        charts.department.update();
+    }
+
     // Public API
     return {
         init: init,
         update: updateCharts,
-        destroy: destroyCharts
+        destroy: destroyCharts,
+        toggleDepartmentMetric: toggleDepartmentMetric
     };
 
 })();
