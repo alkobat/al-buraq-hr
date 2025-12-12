@@ -13,7 +13,8 @@ use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
-use PhpOffice\PhpSpreadsheet\Style\PatternFill;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Style\Color;
 use PhpOffice\PhpWord\PhpWord;
 use PhpOffice\PhpWord\Shared\Inches;
 use PhpOffice\PhpWord\Shared\RGBColor;
@@ -259,7 +260,7 @@ class ExportService {
             foreach ($kpi_data as $kpi) {
                 $summary_sheet->mergeCells("A{$row}:B{$row}");
                 $summary_sheet->setCellValue("A{$row}", $kpi[0]);
-                $summary_sheet->getStyle("A{$row}")->getFill()->setFillType(PatternFill::FILL_SOLID)->getStartColor()->setRGB($kpi[2]);
+                $summary_sheet->getStyle("A{$row}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB($kpi[2]);
                 $summary_sheet->getStyle("A{$row}")->getFont()->setColor(new RGBColor(255, 255, 255))->setBold(true);
                 
                 $summary_sheet->mergeCells("C{$row}:D{$row}");
@@ -314,7 +315,9 @@ class ExportService {
             
             // Style header
             $lastCol = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(count($headers));
-            $header_fill = new PatternFill(PatternFill::FILL_SOLID, '0070C0');
+            $header_fill = new Fill();
+            $header_fill->setFillType(Fill::FILL_SOLID);
+            $header_fill->getStartColor()->setRGB('0070C0');
             $header_font = $sheet->getStyle("A1:{$lastCol}1")->getFont();
             $header_font->setBold(true)->setColor(new RGBColor(255, 255, 255));
             $sheet->getStyle("A1:{$lastCol}1")->setFill($header_fill);
@@ -346,7 +349,7 @@ class ExportService {
                 // Alternating row colors
                 if ($row % 2 == 0) {
                     $sheet->getStyle("A{$row}:{$lastCol}{$row}")->getFill()
-                        ->setFillType(PatternFill::FILL_SOLID)
+                        ->setFillType(Fill::FILL_SOLID)
                         ->getStartColor()->setRGB('F2F2F2');
                 }
                 
