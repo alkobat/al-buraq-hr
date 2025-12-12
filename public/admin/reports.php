@@ -189,7 +189,9 @@ require_once '_sidebar_nav.php';
                                 <select name="cycle" class="form-select">
                                     <option value="">-- كل السنوات --</option>
                                     <?php foreach ($cycles as $c): ?>
-                                        <option value="<?= $c['id'] ?>" <?= $filters['cycle'] == $c['id'] ? 'selected' : '' ?>><?= $c['year'] ?></option>
+                                        <option value="<?= $c['id'] ?>" <?= $filters['cycle'] == $c['id'] ? 'selected' : '' ?>>
+                                            <?= htmlspecialchars($c['year']) . (!empty($c['title']) ? ' - ' . htmlspecialchars($c['title']) : '') ?>
+                                        </option>
                                     <?php endforeach; ?>
                                 </select>
                             </div>
