@@ -284,8 +284,12 @@ require_once '_sidebar_nav.php';
         <div class="row mb-4">
             <div class="col-md-6">
                 <div class="card h-100">
-                    <div class="card-header">
+                    <div class="card-header d-flex justify-content-between align-items-center">
                         <h5 class="mb-0"><i class="fas fa-chart-bar"></i> مقارنة الإدارات</h5>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="toggleDeptMetric">
+                            <label class="form-check-label" for="toggleDeptMetric" style="font-size: 0.9rem;">معدل الإنجاز</label>
+                        </div>
                     </div>
                     <div class="card-body">
                         <div style="position: relative; height: 300px;">
@@ -494,6 +498,16 @@ function setupEventListeners() {
             if (this.selectedOptions.length > 10) {
                 alert('يمكنك اختيار 10 إدارات كحد أقصى');
                 this.selectedOptions[this.selectedOptions.length - 1].selected = false;
+            }
+        });
+    }
+
+    // Department Chart Metric Toggle
+    const toggleDeptMetric = document.getElementById('toggleDeptMetric');
+    if (toggleDeptMetric) {
+        toggleDeptMetric.addEventListener('change', function() {
+            if (window.AnalyticsCharts) {
+                window.AnalyticsCharts.toggleDepartmentMetric(this.checked);
             }
         });
     }
