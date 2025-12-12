@@ -15,10 +15,10 @@ use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Color;
-use PhpOffice\PhpSpreadsheet\Style\Color as SpreadsheetColor;
 use PhpOffice\PhpWord\PhpWord;
-use PhpOffice\PhpWord\Shared\Inches;
 use PhpOffice\PhpWord\Style\Language;
+use PhpOffice\PhpWord\SimpleType\Jc;
+use Mpdf\Mpdf;
 
 class ExportService {
     private $pdo;
@@ -250,9 +250,9 @@ class ExportService {
             $row = 4;
             $kpi_data = [
                 ['الإجمالي', $stats['total_reports'], '0070C0'],
-                ['متوسط الدرجات', round($stats['avg_score'], 1) . '%', '70AD47'],
-                ['أعلى درجة', $stats['max_score'], '0070C0'],
-                ['أقل درجة', $stats['min_score'], 'FFC000'],
+                ['متوسط الدرجات', round($stats['avg_score'] ?? 0, 1) . '%', '70AD47'],
+                ['أعلى درجة', $stats['max_score'] ?? 0, '0070C0'],
+                ['أقل درجة', $stats['min_score'] ?? 0, 'FFC000'],
                 ['موافق عليه', $stats['approved_count'], '70AD47'],
                 ['مرفوض', $stats['rejected_count'], 'C55A11'],
                 ['بانتظار', $stats['submitted_count'], 'FFC000']
@@ -261,8 +261,12 @@ class ExportService {
             foreach ($kpi_data as $kpi) {
                 $summary_sheet->mergeCells("A{$row}:B{$row}");
                 $summary_sheet->setCellValue("A{$row}", $kpi[0]);
-                $summary_sheet->getStyle("A{$row}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB($kpi[2]);
-                $summary_sheet->getStyle("A{$row}")->getFont()->setColor(new SpreadsheetColor(SpreadsheetColor::COLOR_WHITE))->setBold(true);
+                // FIX: Use getFill() and set properties instead of setFill()
+                $summary_sheet->getStyle("A{$row}")->getFill()
+                    ->setFillType(Fill::FILL_SOLID)
+                    ->getStartColor()->setRGB($kpi[2]);
+                    
+                $summary_sheet->getStyle("A{$row}")->getFont()->setColor(new Color(Color::COLOR_WHITE))->setBold(true);
                 
                 $summary_sheet->mergeCells("C{$row}:D{$row}");
                 $summary_sheet->setCellValue("C{$row}", $kpi[1]);
@@ -316,12 +320,14 @@ class ExportService {
             
             // Style header
             $lastCol = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(count($headers));
-            $header_fill = new Fill();
-            $header_fill->setFillType(Fill::FILL_SOLID);
-            $header_fill->getStartColor()->setRGB('0070C0');
+            
+            // FIX: Use getFill() and set properties instead of setFill()
+            $sheet->getStyle("A1:{$lastCol}1")->getFill()
+                ->setFillType(Fill::FILL_SOLID)
+                ->getStartColor()->setRGB('0070C0');
+                
             $header_font = $sheet->getStyle("A1:{$lastCol}1")->getFont();
-            $header_font->setBold(true)->setColor(new SpreadsheetColor(SpreadsheetColor::COLOR_WHITE));
-            $sheet->getStyle("A1:{$lastCol}1")->setFill($header_fill);
+            $header_font->setBold(true)->setColor(new Color(Color::COLOR_WHITE));
             $sheet->getStyle("A1:{$lastCol}1")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
             
             // Add data rows with alternating colors
@@ -349,6 +355,7 @@ class ExportService {
                 
                 // Alternating row colors
                 if ($row % 2 == 0) {
+                    // FIX: Use getFill() and set properties
                     $sheet->getStyle("A{$row}:{$lastCol}{$row}")->getFill()
                         ->setFillType(Fill::FILL_SOLID)
                         ->getStartColor()->setRGB('F2F2F2');
@@ -462,15 +469,15 @@ class ExportService {
                 </div>
                 <div class="kpi-card">
                     <div class="kpi-label">متوسط الدرجات</div>
-                    <div class="kpi-value">' . round($stats['avg_score'], 1) . '%</div>
+                    <div class="kpi-value">' . round($stats['avg_score'] ?? 0, 1) . '%</div>
                 </div>
                 <div class="kpi-card">
                     <div class="kpi-label">أعلى درجة</div>
-                    <div class="kpi-value">' . $stats['max_score'] . '</div>
+                    <div class="kpi-value">' . ($stats['max_score'] ?? 0) . '</div>
                 </div>
                 <div class="kpi-card">
                     <div class="kpi-label">أقل درجة</div>
-                    <div class="kpi-value">' . $stats['min_score'] . '</div>
+                    <div class="kpi-value">' . ($stats['min_score'] ?? 0) . '</div>
                 </div>
                 <div class="kpi-card">
                     <div class="kpi-label">موافق عليه</div>
@@ -559,6 +566,7 @@ class ExportService {
         </html>';
         
         // Generate PDF using mPDF
+        // FIX: Ensure correct options are used
         $mpdf = new \Mpdf\Mpdf([
             'mode' => 'utf-8',
             'format' => 'A4',
@@ -588,7 +596,8 @@ class ExportService {
         $phpWord = new PhpWord();
         
         // Set RTL for document
-        $language = new Language(null, null, 'ar-SA');
+        // FIX: Ensure Language object is correct. The constructor is (latin, eastAsia, bidirectional)
+        $language = new Language(null, null, 'ar-SA'); 
         $phpWord->getSettings()->setThemeFontLang($language);
         
         // Add section
@@ -631,21 +640,23 @@ class ExportService {
         
         // Summary Section
         if ($this->shouldIncludeSection('summary')) {
-            $section->addHeading('ملخص التقارير', 2, ['rtl' => true]);
+            $section->addHeading('ملخص التقارير', 2);
             
             // KPI summary table
             $summaryTable = $section->addTable([
                 'borderSize' => 6,
-                'borderColor' => '0070C0'
+                'borderColor' => '0070C0',
+                'width' => 100 * 50,
+                'unit' => 'pct',
+                'layout' => 'autofit'
             ]);
-            $summaryTable->setWidth(100 * 50);
             
             // KPI rows
             $kpi_data = [
                 'إجمالي التقييمات' => $stats['total_reports'],
-                'متوسط الدرجات' => round($stats['avg_score'], 1) . '%',
-                'أعلى درجة' => $stats['max_score'],
-                'أقل درجة' => $stats['min_score'],
+                'متوسط الدرجات' => round($stats['avg_score'] ?? 0, 1) . '%',
+                'أعلى درجة' => $stats['max_score'] ?? 0,
+                'أقل درجة' => $stats['min_score'] ?? 0,
                 'موافق عليه' => $stats['approved_count'],
                 'مرفوض' => $stats['rejected_count'],
                 'بانتظار الاعتماد' => $stats['submitted_count']
@@ -653,8 +664,8 @@ class ExportService {
             
             foreach ($kpi_data as $label => $value) {
                 $row = $summaryTable->addRow();
-                $row->addCell(2400)->addText($label, ['bold' => true], ['rtl' => true]);
-                $row->addCell(2400)->addText((string)$value, ['bold' => true, 'size' => 14], ['alignment' => 'center', 'rtl' => true]);
+                $row->addCell(5000)->addText($label, ['bold' => true], ['rtl' => true]);
+                $row->addCell(5000)->addText((string)$value, ['bold' => true, 'size' => 14], ['alignment' => 'center', 'rtl' => true]);
             }
             
             $section->addTextBreak();
@@ -662,7 +673,7 @@ class ExportService {
         
         // Details Section
         if ($this->shouldIncludeSection('details')) {
-            $section->addHeading('تفاصيل التقييمات', 2, ['rtl' => true]);
+            $section->addHeading('تفاصيل التقييمات', 2);
             
             $tableStyle = [
                 'borderSize' => 6, 
