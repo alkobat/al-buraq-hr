@@ -8,6 +8,7 @@
 namespace App;
 
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/EvaluationCalculator.php';
 
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -87,6 +88,16 @@ class ExportService {
      * Build SQL WHERE clause and parameters based on filters
      */
     private function buildFilteredQuery() {
+        // تطبيق منطق طريقة التقييم (manager_only)
+        try {
+            $method = (new \EvaluationCalculator($this->pdo))->getEvaluationMethod();
+            if ($method === 'manager_only') {
+                $this->filters['role'] = 'manager';
+            }
+        } catch (\Exception $e) {
+            // Ignore if class not found or other error, fallback to filters
+        }
+
         $sql_base = "
             FROM employee_evaluations e
             JOIN users u ON e.employee_id = u.id
@@ -248,7 +259,17 @@ class ExportService {
             
             // KPI Cards with merged cells
             $row = 4;
+            
+            // (جديد) إضافة طريقة الاحتساب
+            try {
+                $calc = new \EvaluationCalculator($this->pdo);
+                $method_name = $calc->getMethodName();
+            } catch (\Exception $e) {
+                $method_name = '—';
+            }
+
             $kpi_data = [
+                ['طريقة الاحتساب', $method_name, '546E7A'],
                 ['الإجمالي', $stats['total_reports'], '0070C0'],
                 ['متوسط الدرجات', round($stats['avg_score'] ?? 0, 1) . '%', '70AD47'],
                 ['أعلى درجة', $stats['max_score'] ?? 0, '0070C0'],

@@ -327,8 +327,16 @@ $logo_path = $system_settings['logo_path'] ?? 'logo.png';
                         طريقة الحساب: <strong><?= htmlspecialchars($method_name) ?></strong>
                     </small>
                 <?php else: ?>
-                    <h2 class="fw-bold text-secondary m-0">--</h2>
-                    <small class="text-muted">لم يتم اعتماد الدرجة بعد</small>
+                    <?php if ($evaluation_method === 'average'): ?>
+                        <h2 class="fw-bold text-warning m-0">غير مكتمل</h2>
+                        <small class="text-muted d-block mt-2">
+                            <i class="fas fa-exclamation-triangle"></i>
+                             في انتظار تقييم الرئيس المباشر
+                        </small>
+                    <?php else: ?>
+                        <h2 class="fw-bold text-secondary m-0">--</h2>
+                        <small class="text-muted">لم يتم اعتماد الدرجة بعد</small>
+                    <?php endif; ?>
                 <?php endif; ?>
             </div>
         </div>
