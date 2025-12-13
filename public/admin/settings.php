@@ -26,6 +26,8 @@ if (empty($_SESSION['logout_csrf_token'])) {
 $logout_csrf_token = $_SESSION['logout_csrf_token'];
 
 require_once '../../app/core/db.php';
+require_once '../../app/core/Logger.php';
+require_once '../../app/core/EvaluationCalculator.php';
 
 $msg = '';
 $error = '';
@@ -78,9 +80,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_settings'])) {
     }
 }
 
+// معالجة حفظ طريقة احتساب التقييم
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_evaluation_method'])) {
+    if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $csrf_token) {
+        $error = "خطأ أمني: رمز CSRF غير صالح.";
+    } else {
+        $evaluation_method = $_POST['evaluation_method'] ?? 'manager_only';
+        $calculator = new EvaluationCalculator($pdo);
+        
+        try {
+            $old_method = $calculator->getEvaluationMethod();
+            
+            if ($calculator->setEvaluationMethod($evaluation_method)) {
+                $logger = new Logger($pdo);
+                $old_method_name = $calculator->getMethodName($old_method);
+                $new_method_name = $calculator->getMethodName($evaluation_method);
+                $logger->log('settings', "تم تغيير طريقة احتساب التقييمات من '{$old_method_name}' إلى '{$new_method_name}'");
+                
+                try { $_SESSION['csrf_token'] = bin2hex(random_bytes(32)); } catch (Exception $e) {}
+                header('Location: settings.php?msg=evaluation_method_saved');
+                exit;
+            } else {
+                $error = "فشل في حفظ طريقة الحساب.";
+            }
+        } catch (InvalidArgumentException $e) {
+            $error = $e->getMessage();
+        }
+    }
+}
+
 // القيم الحالية
 $current_company_name = $system_settings['company_name'] ?? 'شركة البراق للنقل الجوي';
 $current_logo = $system_settings['logo_path'] ?? 'logo.png';
+
+// جلب طريقة احتساب التقييم الحالية
+$calculator = new EvaluationCalculator($pdo);
+$current_evaluation_method = $calculator->getEvaluationMethod();
 ?>
 <!DOCTYPE html>
 <html dir="rtl" lang="ar">
@@ -104,6 +139,10 @@ require_once '_sidebar_nav.php';
 
     <?php if (isset($_GET['msg']) && $_GET['msg'] == 'saved'): ?>
         <div class="alert alert-success">تم حفظ الإعدادات بنجاح.</div>
+    <?php endif; ?>
+    
+    <?php if (isset($_GET['msg']) && $_GET['msg'] == 'evaluation_method_saved'): ?>
+        <div class="alert alert-success"><i class="fas fa-check-circle"></i> تم حفظ طريقة احتساب التقييمات بنجاح.</div>
     <?php endif; ?>
     
     <?php if (!empty($error)): ?>
@@ -141,6 +180,57 @@ require_once '_sidebar_nav.php';
                         <button type="submit" name="save_settings" class="btn btn-success">
                             <i class="fas fa-save"></i> حفظ التغييرات
                         </button>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <i class="fas fa-calculator"></i> طريقة احتساب التقييمات
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
+                        
+                        <div class="mb-3">
+                            <p class="text-muted small mb-3">
+                                <i class="fas fa-info-circle"></i> 
+                                يحدد هذا الإعداد كيفية حساب التقييم النهائي للموظف عند وجود تقييمين (من المدير والمشرف).
+                            </p>
+                            
+                            <div class="form-check mb-3 p-3 border rounded <?= $current_evaluation_method == 'manager_only' ? 'bg-light border-primary' : '' ?>">
+                                <input class="form-check-input" type="radio" name="evaluation_method" id="method_manager" 
+                                       value="manager_only" <?= $current_evaluation_method == 'manager_only' ? 'checked' : '' ?>>
+                                <label class="form-check-label" for="method_manager">
+                                    <strong>تقييم مدير الإدارة فقط</strong>
+                                    <br><small class="text-muted">التقييم النهائي = تقييم المدير (الطريقة الافتراضية)</small>
+                                </label>
+                            </div>
+                            
+                            <div class="form-check p-3 border rounded <?= $current_evaluation_method == 'average' ? 'bg-light border-primary' : '' ?>">
+                                <input class="form-check-input" type="radio" name="evaluation_method" id="method_average" 
+                                       value="average" <?= $current_evaluation_method == 'average' ? 'checked' : '' ?>>
+                                <label class="form-check-label" for="method_average">
+                                    <strong>متوسط تقييمي المدير والمشرف</strong>
+                                    <br><small class="text-muted">التقييم النهائي = (تقييم المدير + تقييم المشرف) ÷ 2</small>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-warning small mb-3">
+                            <i class="fas fa-exclamation-triangle"></i> 
+                            <strong>ملاحظة:</strong> تغيير هذا الإعداد سيؤثر على جميع التقارير والإحصائيات الحالية والمستقبلية.
+                        </div>
+                        
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div class="text-muted small">
+                                <i class="fas fa-check-circle text-success"></i> 
+                                الطريقة الحالية: <strong><?= $calculator->getMethodName() ?></strong>
+                            </div>
+                            <button type="submit" name="save_evaluation_method" class="btn btn-success">
+                                <i class="fas fa-save"></i> حفظ
+                            </button>
+                        </div>
                     </form>
                 </div>
             </div>

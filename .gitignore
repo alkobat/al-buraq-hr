@@ -1,8 +1,47 @@
-# CakePHP 3
-
+# Dependencies
 /vendor/*
-/config/app.php
+composer.phar
 
+# Environment & Configuration
+/app/core/db.php
+.env
+.env.local
+
+# Storage & Uploads
+/storage/backups/*
+!/storage/backups/.gitkeep
+/storage/uploads/*
+!/storage/uploads/.gitkeep
+/storage/temp/*
+!/storage/temp/.gitkeep
+
+# Logs
+/logs/*
+!/logs/.gitkeep
+*.log
+
+# Cache
+/cache/*
+!/cache/.gitkeep
+
+# OS Files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary files
+*.tmp
+*.bak
+*.old
+
+# CakePHP Legacy (keep for compatibility)
 /tmp/cache/models/*
 !/tmp/cache/models/empty
 /tmp/cache/persistent/*
@@ -13,13 +52,6 @@
 !/tmp/sessions/empty
 /tmp/tests/*
 !/tmp/tests/empty
-
-/logs/*
-!/logs/empty
-
-# CakePHP 2
-
 /app/tmp/*
 /app/Config/core.php
 /app/Config/database.php
-/vendors/*

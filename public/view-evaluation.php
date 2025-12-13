@@ -4,6 +4,7 @@ session_start();
 
 // تأكد من أن ملف db.php يقوم بإنشاء اتصال PDO ويخزنه في المتغير $pdo
 require_once '../app/core/db.php';
+require_once '../app/core/EvaluationCalculator.php';
 
 // توليد CSRF token إذا لم يكن موجوداً
 if (empty($_SESSION['csrf_token'])) {
@@ -136,8 +137,17 @@ function getCustomTextResponses($pdo, $evaluation_id, $cycle_id) {
 $supervisor_text = $supervisor_eval ? getCustomTextResponses($pdo, $supervisor_eval['id'], $eval['cycle_id']) : [];
 $manager_text = $manager_eval ? getCustomTextResponses($pdo, $manager_eval['id'], $eval['cycle_id']) : [];
 
-$approved_score = $manager_eval['total_score'] ?? '—';
-$is_approved_score_available = isset($manager_eval['total_score']);
+// حساب التقييم النهائي باستخدام EvaluationCalculator
+$calculator = new EvaluationCalculator($pdo);
+$scores = $calculator->getEmployeeScores($eval['employee_id'], $eval['cycle_id']);
+$final_score = $scores['final_score'];
+$manager_score = $scores['manager_score'];
+$supervisor_score = $scores['supervisor_score'];
+$evaluation_method = $scores['method'];
+$method_name = $calculator->getMethodName($evaluation_method);
+
+$approved_score = $final_score ?? '—';
+$is_approved_score_available = ($final_score !== null);
 
 $company_name = $system_settings['company_name'] ?? 'شركة البراق للنقل الجوي';
 $logo_path = $system_settings['logo_path'] ?? 'logo.png';
@@ -291,14 +301,36 @@ $logo_path = $system_settings['logo_path'] ?? 'logo.png';
     <?php endif; ?>
 
     <div class="card mb-4 border-primary">
-        <div class="card-body text-center pt-2 pb-2">
-            <h5 class="text-primary fw-bold mb-1">النتيجة النهائية المعتمدة</h5>
-            <?php if ($is_approved_score_available): ?>
-                <h2 class="fw-bold text-success m-0"><?= $approved_score ?> %</h2>
-            <?php else: ?>
-                <h2 class="fw-bold text-secondary m-0">--</h2>
-                <small class="text-muted">لم يتم اعتماد الدرجة بعد</small>
-            <?php endif; ?>
+        <div class="card-body text-center pt-3 pb-3">
+            <h5 class="text-primary fw-bold mb-3">النتيجة النهائية</h5>
+            
+            <div class="row mb-3">
+                <div class="col-md-6 mb-2">
+                    <div class="p-2 border rounded">
+                        <small class="text-muted d-block">تقييم المشرف المباشر</small>
+                        <h4 class="fw-bold text-info m-0"><?= $supervisor_score !== null ? $supervisor_score . '%' : '—' ?></h4>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-2">
+                    <div class="p-2 border rounded">
+                        <small class="text-muted d-block">تقييم مدير الإدارة</small>
+                        <h4 class="fw-bold text-primary m-0"><?= $manager_score !== null ? $manager_score . '%' : '—' ?></h4>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="border-top pt-3">
+                <?php if ($is_approved_score_available): ?>
+                    <h2 class="fw-bold text-success m-0"><?= $approved_score ?> %</h2>
+                    <small class="text-muted d-block mt-2">
+                        <i class="fas fa-info-circle"></i> 
+                        طريقة الحساب: <strong><?= htmlspecialchars($method_name) ?></strong>
+                    </small>
+                <?php else: ?>
+                    <h2 class="fw-bold text-secondary m-0">--</h2>
+                    <small class="text-muted">لم يتم اعتماد الدرجة بعد</small>
+                <?php endif; ?>
+            </div>
         </div>
     </div>
 
