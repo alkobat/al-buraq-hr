@@ -22,9 +22,10 @@ class EvaluationCalculator {
      * @param float|null $managerScore تقييم المدير
      * @param float|null $supervisorScore تقييم المشرف
      * @param string|null $method الطريقة (إذا كانت null، يتم جلبها من الإعدادات)
+     * @param int|null $employeeId معرف الموظف (للتحقق من وجود مشرف)
      * @return float|null التقييم النهائي أو null إذا لم تتوفر البيانات الكافية
      */
-    public function calculateFinalScore($managerScore = null, $supervisorScore = null, $method = null) {
+    public function calculateFinalScore($managerScore = null, $supervisorScore = null, $method = null, $employeeId = null) {
         // جلب الطريقة من الإعدادات إذا لم يتم تحديدها
         if ($method === null) {
             $method = $this->getEvaluationMethod();
@@ -45,14 +46,37 @@ class EvaluationCalculator {
             return $managerScore;
         } elseif ($method === self::METHOD_AVERAGE) {
             // الطريقة الجديدة: متوسط التقييمين
+            
+            // التحقق من وجود رئيس مباشر إذا توفر معرف الموظف
+            $hasSupervisor = false;
+            if ($employeeId) {
+                $stmt = $this->pdo->prepare("SELECT supervisor_id FROM users WHERE id = ?");
+                $stmt->execute([$employeeId]);
+                $supId = $stmt->fetchColumn();
+                $hasSupervisor = !empty($supId);
+            }
+            
+            // الحالة 1: الموظف ليس لديه رئيس مباشر
+            // يتم اعتماد تقييم المدير فقط
+            if ($employeeId && !$hasSupervisor) {
+                return $managerScore;
+            }
+            
+            // الحالة 2: الموظف لديه رئيس مباشر (أو لم يتم تحديد الموظف فنفترض وجود مشرف للدقة)
+            // إذا توفر كلا التقييمين، نحسب المتوسط
             if ($managerScore !== null && $supervisorScore !== null) {
-                // كلا التقييمين موجودان
                 return round(($managerScore + $supervisorScore) / 2, 2);
-            } elseif ($managerScore !== null) {
-                // المدير فقط قيّم
+            }
+            
+            // إذا فقد أحد التقييمين وكان الموظف معروفاً وله مشرف، نرجع null (غير مكتمل)
+            if ($employeeId && $hasSupervisor) {
+                return null; 
+            }
+            
+            // fallback (للتوافق مع القديم في حال عدم تمرير employeeId)
+            if ($managerScore !== null) {
                 return $managerScore;
             } elseif ($supervisorScore !== null) {
-                // المشرف فقط قيّم
                 return $supervisorScore;
             }
         }
@@ -155,7 +179,8 @@ class EvaluationCalculator {
             $supervisorScore = $stmt->fetchColumn();
             
             // حساب التقييم النهائي
-            $finalScore = $this->calculateFinalScore($managerScore, $supervisorScore);
+            // نمرر employeeId لتفعيل منطق التحقق من المشرف
+            $finalScore = $this->calculateFinalScore($managerScore, $supervisorScore, null, $employeeId);
             
             return [
                 'manager_score' => $managerScore !== false ? (float)$managerScore : null,

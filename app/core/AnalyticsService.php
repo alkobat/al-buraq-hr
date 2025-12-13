@@ -7,6 +7,7 @@
  */
 
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/EvaluationCalculator.php';
 
 class AnalyticsService {
     private $pdo;
@@ -123,6 +124,13 @@ class AnalyticsService {
      */
     public function getGlobalStats(array $filters = []): array {
         $filters = $this->sanitizeFilters($filters);
+        
+        // تطبيق منطق طريقة التقييم (manager_only)
+        $method = (new EvaluationCalculator($this->pdo))->getEvaluationMethod();
+        if ($method === 'manager_only') {
+            $filters['evaluator_role'] = 'manager';
+        }
+
         $where = $this->buildWhereClause($filters);
         $params = $where['params'];
         
@@ -167,6 +175,13 @@ class AnalyticsService {
      */
     public function getDepartmentAggregates(array $filters = []): array {
         $filters = $this->sanitizeFilters($filters);
+        
+        // تطبيق منطق طريقة التقييم (manager_only)
+        $method = (new EvaluationCalculator($this->pdo))->getEvaluationMethod();
+        if ($method === 'manager_only') {
+            $filters['evaluator_role'] = 'manager';
+        }
+
         $where = $this->buildWhereClause($filters);
         $params = $where['params'];
         
@@ -210,6 +225,13 @@ class AnalyticsService {
      */
     public function getTopBottomEmployees(array $filters = [], int $limit = 10): array {
         $filters = $this->sanitizeFilters($filters);
+        
+        // تطبيق منطق طريقة التقييم (manager_only)
+        $method = (new EvaluationCalculator($this->pdo))->getEvaluationMethod();
+        if ($method === 'manager_only') {
+            $filters['evaluator_role'] = 'manager';
+        }
+
         $where = $this->buildWhereClause($filters);
         $params = $where['params'];
         
@@ -281,6 +303,13 @@ class AnalyticsService {
      */
     public function getStatusDistribution(array $filters = []): array {
         $filters = $this->sanitizeFilters($filters);
+        
+        // تطبيق منطق طريقة التقييم (manager_only)
+        $method = (new EvaluationCalculator($this->pdo))->getEvaluationMethod();
+        if ($method === 'manager_only') {
+            $filters['evaluator_role'] = 'manager';
+        }
+
         $where = $this->buildWhereClause($filters);
         $params = $where['params'];
         
@@ -333,6 +362,13 @@ class AnalyticsService {
      */
     public function getTrendData(string $period = 'monthly', array $filters = []): array {
         $filters = $this->sanitizeFilters($filters);
+        
+        // تطبيق منطق طريقة التقييم (manager_only)
+        $method = (new EvaluationCalculator($this->pdo))->getEvaluationMethod();
+        if ($method === 'manager_only') {
+            $filters['evaluator_role'] = 'manager';
+        }
+
         $where = $this->buildWhereClause($filters);
         $params = $where['params'];
         
@@ -373,6 +409,13 @@ class AnalyticsService {
      */
     public function getHeatmapMatrix(string $matrix_type = 'score_band', array $filters = []): array {
         $filters = $this->sanitizeFilters($filters);
+        
+        // تطبيق منطق طريقة التقييم (manager_only)
+        $method = (new EvaluationCalculator($this->pdo))->getEvaluationMethod();
+        if ($method === 'manager_only') {
+            $filters['evaluator_role'] = 'manager';
+        }
+
         $where = $this->buildWhereClause($filters);
         $params = $where['params'];
         
