@@ -144,6 +144,8 @@ $final_score = $scores['final_score'];
 $manager_score = $scores['manager_score'];
 $supervisor_score = $scores['supervisor_score'];
 $evaluation_method = $scores['method'];
+$evaluation_status = $scores['status'];
+$evaluation_note = $scores['note'];
 $method_name = $calculator->getMethodName($evaluation_method);
 
 $approved_score = $final_score ?? '—';
@@ -301,38 +303,55 @@ $logo_path = $system_settings['logo_path'] ?? 'logo.png';
     <?php endif; ?>
 
     <div class="card mb-4 border-primary">
-        <div class="card-body text-center pt-3 pb-3">
-            <h5 class="text-primary fw-bold mb-3">النتيجة النهائية</h5>
-            
-            <div class="row mb-3">
-                <div class="col-md-6 mb-2">
-                    <div class="p-2 border rounded">
-                        <small class="text-muted d-block">تقييم المشرف المباشر</small>
-                        <h4 class="fw-bold text-info m-0"><?= $supervisor_score !== null ? $supervisor_score . '%' : '—' ?></h4>
-                    </div>
-                </div>
-                <div class="col-md-6 mb-2">
-                    <div class="p-2 border rounded">
-                        <small class="text-muted d-block">تقييم مدير الإدارة</small>
-                        <h4 class="fw-bold text-primary m-0"><?= $manager_score !== null ? $manager_score . '%' : '—' ?></h4>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="border-top pt-3">
-                <?php if ($is_approved_score_available): ?>
-                    <h2 class="fw-bold text-success m-0"><?= $approved_score ?> %</h2>
-                    <small class="text-muted d-block mt-2">
-                        <i class="fas fa-info-circle"></i> 
-                        طريقة الحساب: <strong><?= htmlspecialchars($method_name) ?></strong>
-                    </small>
-                <?php else: ?>
-                    <h2 class="fw-bold text-secondary m-0">--</h2>
-                    <small class="text-muted">لم يتم اعتماد الدرجة بعد</small>
-                <?php endif; ?>
-            </div>
-        </div>
-    </div>
+         <div class="card-body text-center pt-3 pb-3">
+             <h5 class="text-primary fw-bold mb-3">النتيجة النهائية</h5>
+
+             <div class="row mb-3">
+                 <div class="col-md-6 mb-2">
+                     <div class="p-2 border rounded">
+                         <small class="text-muted d-block">تقييم المشرف المباشر</small>
+                         <h4 class="fw-bold text-info m-0"><?= $supervisor_score !== null ? $supervisor_score . '%' : '—' ?></h4>
+                     </div>
+                 </div>
+                 <div class="col-md-6 mb-2">
+                     <div class="p-2 border rounded">
+                         <small class="text-muted d-block">تقييم مدير الإدارة</small>
+                         <h4 class="fw-bold text-primary m-0"><?= $manager_score !== null ? $manager_score . '%' : '—' ?></h4>
+                     </div>
+                 </div>
+             </div>
+
+             <div class="border-top pt-3">
+                 <?php if ($is_approved_score_available): ?>
+                     <h2 class="fw-bold text-success m-0"><?= $approved_score ?> %</h2>
+                     <small class="text-muted d-block mt-2">
+                         <i class="fas fa-info-circle"></i>
+                         طريقة الحساب: <strong><?= htmlspecialchars($method_name) ?></strong>
+                     </small>
+                     <?php if ($evaluation_status !== 'complete'): ?>
+                         <div class="alert alert-warning mt-3 mb-0 small">
+                             <i class="fas fa-exclamation-triangle"></i>
+                             <?= htmlspecialchars($evaluation_note) ?>
+                         </div>
+                     <?php else: ?>
+                         <small class="text-muted d-block mt-2">
+                             <i class="fas fa-check-circle text-success"></i>
+                             <?= htmlspecialchars($evaluation_note) ?>
+                         </small>
+                     <?php endif; ?>
+                 <?php else: ?>
+                     <h2 class="fw-bold text-secondary m-0">--</h2>
+                     <small class="text-muted">لم يتم اعتماد الدرجة بعد</small>
+                     <?php if (!empty($evaluation_note)): ?>
+                         <div class="alert alert-warning mt-3 mb-0 small">
+                             <i class="fas fa-exclamation-triangle"></i>
+                             <?= htmlspecialchars($evaluation_note) ?>
+                         </div>
+                     <?php endif; ?>
+                 <?php endif; ?>
+             </div>
+         </div>
+     </div>
 
     <div class="card mb-4">
         <div class="card-header bg-primary text-white no-print">
