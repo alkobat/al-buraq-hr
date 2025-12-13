@@ -193,28 +193,52 @@ require_once '_sidebar_nav.php';
                         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
                         
                         <div class="mb-3">
-                            <p class="text-muted small mb-3">
+                            <p class="text-muted small mb-4">
                                 <i class="fas fa-info-circle"></i> 
-                                يحدد هذا الإعداد كيفية حساب التقييم النهائي للموظف عند وجود تقييمين (من المدير والمشرف).
+                                يحدد هذا الإعداد كيفية حساب التقييم النهائي للموظف. اختر الطريقة التي تناسب احتياجات منظمتك:
                             </p>
                             
                             <div class="form-check mb-3 p-3 border rounded <?= $current_evaluation_method == 'manager_only' ? 'bg-light border-primary' : '' ?>">
                                 <input class="form-check-input" type="radio" name="evaluation_method" id="method_manager" 
                                        value="manager_only" <?= $current_evaluation_method == 'manager_only' ? 'checked' : '' ?>>
                                 <label class="form-check-label" for="method_manager">
-                                    <strong>تقييم مدير الإدارة فقط</strong>
-                                    <br><small class="text-muted">التقييم النهائي = تقييم المدير (الطريقة الافتراضية)</small>
+                                    <strong>① تقييم مدير الإدارة فقط</strong>
+                                    <br><small class="text-muted">التقييم النهائي = تقييم المدير فقط (تقييم المشرف للعرض فقط)</small>
+                                    <br><small class="text-success"><i class="fas fa-check-circle"></i> المناسب للمنظمات التقليدية</small>
                                 </label>
                             </div>
                             
-                            <div class="form-check p-3 border rounded <?= $current_evaluation_method == 'average' ? 'bg-light border-primary' : '' ?>">
-                                <input class="form-check-input" type="radio" name="evaluation_method" id="method_average" 
-                                       value="average" <?= $current_evaluation_method == 'average' ? 'checked' : '' ?>>
-                                <label class="form-check-label" for="method_average">
-                                    <strong>متوسط تقييمي المدير والمشرف</strong>
-                                    <br><small class="text-muted">التقييم النهائي = (تقييم المدير + تقييم المشرف) ÷ 2</small>
+                            <div class="form-check mb-3 p-3 border rounded <?= $current_evaluation_method == 'available_score' ? 'bg-light border-primary' : '' ?>">
+                                <input class="form-check-input" type="radio" name="evaluation_method" id="method_available" 
+                                       value="available_score" <?= $current_evaluation_method == 'available_score' ? 'checked' : '' ?>>
+                                <label class="form-check-label" for="method_available">
+                                    <strong>② استخدام التقييم الموجود</strong>
+                                    <br><small class="text-muted">إذا قيم كلاهما: (المدير + المشرف) ÷ 2 | إذا قيم أحدهما: تقييم من قيّم | إذا لا أحد: غير مكتمل</small>
+                                    <br><small class="text-success"><i class="fas fa-check-circle"></i> المناسب للمنظمات التي تريد المرونة</small>
                                 </label>
                             </div>
+                            
+                            <div class="form-check p-3 border rounded <?= $current_evaluation_method == 'average_complete' ? 'bg-light border-primary' : '' ?>">
+                                <input class="form-check-input" type="radio" name="evaluation_method" id="method_complete" 
+                                       value="average_complete" <?= $current_evaluation_method == 'average_complete' ? 'checked' : '' ?>>
+                                <label class="form-check-label" for="method_complete">
+                                    <strong>③ متوسط المدير والمشرف (مع التحقق من الاكتمال)</strong>
+                                    <br><small class="text-muted">
+                                        بدون رئيس مباشر: تقييم المدير | مع رئيس: إذا قيم كلاهما = المتوسط | إذا نقص أحدهما = غير مكتمل
+                                    </small>
+                                    <br><small class="text-success"><i class="fas fa-check-circle"></i> المناسب للمنظمات الكبيرة والرسمية (مختار افتراضياً)</small>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-info small mb-3">
+                            <i class="fas fa-lightbulb"></i> 
+                            <strong>الفرق بين الطرق:</strong>
+                            <ul class="mb-0 mt-2">
+                                <li><strong>الطريقة الأولى:</strong> الأبسط والأسرع - تقييم واحد فقط</li>
+                                <li><strong>الطريقة الثانية:</strong> مرنة وذكية - تتعامل مع الحالات الناقصة</li>
+                                <li><strong>الطريقة الثالثة:</strong> عادلة وشاملة - تضمن اكتمال التقييمات</li>
+                            </ul>
                         </div>
                         
                         <div class="alert alert-warning small mb-3">
@@ -226,6 +250,7 @@ require_once '_sidebar_nav.php';
                             <div class="text-muted small">
                                 <i class="fas fa-check-circle text-success"></i> 
                                 الطريقة الحالية: <strong><?= $calculator->getMethodName() ?></strong>
+                                <br><small class="text-muted mt-1 d-block"><?= $calculator->getMethodDescription() ?></small>
                             </div>
                             <button type="submit" name="save_evaluation_method" class="btn btn-success">
                                 <i class="fas fa-save"></i> حفظ
