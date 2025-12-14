@@ -36,6 +36,8 @@ $stmt = $pdo->prepare("
     LEFT JOIN departments d ON u.department_id = d.id
     JOIN users ev ON e.evaluator_id = ev.id
     WHERE l.unique_token = ?
+    ORDER BY (e.status = 'submitted') DESC, (e.evaluator_role = 'manager') DESC, e.id DESC
+    LIMIT 1
 ");
 $stmt->execute([$token]);
 $eval = $stmt->fetch();
@@ -59,8 +61,8 @@ if ($_POST && isset($_POST['action'])) {
     $action = $_POST['action'];
 
     if ($action === 'approve') {
-        $update_stmt = $pdo->prepare("UPDATE employee_evaluations SET status = 'approved', accepted_at = NOW() WHERE id = ?");
-        $update_stmt->execute([$eval['id']]);
+        $update_stmt = $pdo->prepare("UPDATE employee_evaluations SET status = 'approved', accepted_at = NOW() WHERE employee_id = ? AND cycle_id = ? AND status = 'submitted'");
+        $update_stmt->execute([$eval['employee_id'], $eval['cycle_id']]);
         
         $notification_title = "تمت الموافقة على تقييمك";
         $notification_message = "تمت الموافقة على تقييمك من قبل {$eval['evaluator_name']} في دورة {$eval['year']}.";
@@ -78,8 +80,8 @@ if ($_POST && isset($_POST['action'])) {
         }
 
     } elseif ($action === 'reject') {
-        $update_stmt = $pdo->prepare("UPDATE employee_evaluations SET status = 'rejected' WHERE id = ?");
-        $update_stmt->execute([$eval['id']]);
+        $update_stmt = $pdo->prepare("UPDATE employee_evaluations SET status = 'rejected' WHERE employee_id = ? AND cycle_id = ? AND status = 'submitted'");
+        $update_stmt->execute([$eval['employee_id'], $eval['cycle_id']]);
         
         $pdo->prepare("INSERT INTO notifications (user_id, title, message, type) VALUES (?, ?, ?, 'danger')")->execute([$eval['employee_id'], "تم رفض تقييمك", "رفضت التقييم."]);
         

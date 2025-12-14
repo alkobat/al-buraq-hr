@@ -109,6 +109,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_evaluation_metho
     }
 }
 
+function upsertSystemSetting($pdo, $key, $value) {
+    try {
+        $stmt = $pdo->prepare("SELECT id FROM system_settings WHERE `key` = ? LIMIT 1");
+        $stmt->execute([$key]);
+        $exists = $stmt->fetchColumn();
+
+        if ($exists) {
+            $stmt = $pdo->prepare("UPDATE system_settings SET value = ? WHERE `key` = ?");
+            $stmt->execute([$value, $key]);
+        } else {
+            $stmt = $pdo->prepare("INSERT INTO system_settings (`key`, value) VALUES (?, ?)");
+            $stmt->execute([$key, $value]);
+        }
+    } catch (Exception $e) {
+        error_log('Failed to save setting ' . $key . ': ' . $e->getMessage());
+    }
+}
+
+// معالجة حفظ إعدادات إرسال البريد الإلكتروني للتقييمات
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_evaluation_email_settings'])) {
+    if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $csrf_token) {
+        $error = "خطأ أمني: رمز CSRF غير صالح.";
+    } else {
+        $managerOnlyEnabled = isset($_POST['evaluation_email_manager_only_enabled']) ? '1' : '0';
+
+        $availableMode = $_POST['evaluation_email_available_score_mode'] ?? 'any';
+        $allowedAvailable = ['manager_only', 'supervisor_only', 'any', 'both'];
+        if (!in_array($availableMode, $allowedAvailable, true)) {
+            $availableMode = 'any';
+        }
+
+        $averageMode = $_POST['evaluation_email_average_complete_mode'] ?? 'waiting_supervisor_plus_final';
+        $allowedAverage = ['both_only', 'each_plus_final', 'waiting_supervisor_plus_final'];
+        if (!in_array($averageMode, $allowedAverage, true)) {
+            $averageMode = 'waiting_supervisor_plus_final';
+        }
+
+        upsertSystemSetting($pdo, 'evaluation_email_manager_only_enabled', $managerOnlyEnabled);
+        upsertSystemSetting($pdo, 'evaluation_email_available_score_mode', $availableMode);
+        upsertSystemSetting($pdo, 'evaluation_email_average_complete_mode', $averageMode);
+
+        $logger = new Logger($pdo);
+        $logger->log('settings', "تم تحديث إعدادات إرسال البريد الإلكتروني للتقييمات");
+
+        try { $_SESSION['csrf_token'] = bin2hex(random_bytes(32)); } catch (Exception $e) {}
+        header('Location: settings.php?msg=evaluation_email_settings_saved');
+        exit;
+    }
+}
+
 // القيم الحالية
 $current_company_name = $system_settings['company_name'] ?? 'شركة البراق للنقل الجوي';
 $current_logo = $system_settings['logo_path'] ?? 'logo.png';
@@ -116,6 +166,11 @@ $current_logo = $system_settings['logo_path'] ?? 'logo.png';
 // جلب طريقة احتساب التقييم الحالية
 $calculator = new EvaluationCalculator($pdo);
 $current_evaluation_method = $calculator->getEvaluationMethod();
+
+// إعدادات البريد الإلكتروني للتقييمات
+$current_email_manager_only_enabled = $system_settings['evaluation_email_manager_only_enabled'] ?? '0';
+$current_email_available_score_mode = $system_settings['evaluation_email_available_score_mode'] ?? 'any';
+$current_email_average_complete_mode = $system_settings['evaluation_email_average_complete_mode'] ?? 'waiting_supervisor_plus_final';
 ?>
 <!DOCTYPE html>
 <html dir="rtl" lang="ar">
@@ -143,6 +198,10 @@ require_once '_sidebar_nav.php';
     
     <?php if (isset($_GET['msg']) && $_GET['msg'] == 'evaluation_method_saved'): ?>
         <div class="alert alert-success"><i class="fas fa-check-circle"></i> تم حفظ طريقة احتساب التقييمات بنجاح.</div>
+    <?php endif; ?>
+
+    <?php if (isset($_GET['msg']) && $_GET['msg'] == 'evaluation_email_settings_saved'): ?>
+        <div class="alert alert-success"><i class="fas fa-check-circle"></i> تم حفظ إعدادات البريد الإلكتروني للتقييمات بنجاح.</div>
     <?php endif; ?>
     
     <?php if (!empty($error)): ?>
@@ -256,6 +315,73 @@ require_once '_sidebar_nav.php';
                                 <i class="fas fa-save"></i> حفظ
                             </button>
                         </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header bg-warning text-dark">
+                    <i class="fas fa-envelope"></i> إعدادات إرسال البريد الإلكتروني للتقييمات
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
+
+                        <p class="text-muted small mb-4">
+                            <i class="fas fa-info-circle"></i>
+                            يتم تطبيق الإرسال حسب <strong>طريقة احتساب التقييمات</strong> المختارة أعلاه.
+                            جميع الرسائل تحتوي على رابط عرض التقييم والموافقة/الرفض.
+                        </p>
+
+                        <div class="mb-4 p-3 border rounded">
+                            <h6 class="mb-2">① تقييم مدير الإدارة فقط</h6>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="email_manager_only" name="evaluation_email_manager_only_enabled" value="1" <?= $current_email_manager_only_enabled === '1' ? 'checked' : '' ?>>
+                                <label class="form-check-label" for="email_manager_only">
+                                    إرسال رسالة التنبيه عند حفظ/إرسال تقييم المدير (مع رابط التقييم)
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="mb-4 p-3 border rounded">
+                            <h6 class="mb-3">② استخدام التقييم الموجود</h6>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="radio" name="evaluation_email_available_score_mode" id="available_manager" value="manager_only" <?= $current_email_available_score_mode === 'manager_only' ? 'checked' : '' ?>>
+                                <label class="form-check-label" for="available_manager">إرسال عند تقييم المدير فقط</label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="radio" name="evaluation_email_available_score_mode" id="available_supervisor" value="supervisor_only" <?= $current_email_available_score_mode === 'supervisor_only' ? 'checked' : '' ?>>
+                                <label class="form-check-label" for="available_supervisor">إرسال عند تقييم المشرف فقط</label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="radio" name="evaluation_email_available_score_mode" id="available_any" value="any" <?= $current_email_available_score_mode === 'any' ? 'checked' : '' ?>>
+                                <label class="form-check-label" for="available_any">إرسال عند توفر أي تقييم (المدير أو المشرف)</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="evaluation_email_available_score_mode" id="available_both" value="both" <?= $current_email_available_score_mode === 'both' ? 'checked' : '' ?>>
+                                <label class="form-check-label" for="available_both"><strong>عند توفر كلا التقييمين (متقدم)</strong> مع رسالة نهائية بالنتيجة</label>
+                            </div>
+                        </div>
+
+                        <div class="mb-4 p-3 border rounded">
+                            <h6 class="mb-3">③ متوسط المدير والمشرف (مع التحقق من الاكتمال)</h6>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="radio" name="evaluation_email_average_complete_mode" id="complete_both_only" value="both_only" <?= $current_email_average_complete_mode === 'both_only' ? 'checked' : '' ?>>
+                                <label class="form-check-label" for="complete_both_only">إرسال عند اكتمال التقييم فقط (رسالة واحدة)</label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="radio" name="evaluation_email_average_complete_mode" id="complete_each_plus_final" value="each_plus_final" <?= $current_email_average_complete_mode === 'each_plus_final' ? 'checked' : '' ?>>
+                                <label class="form-check-label" for="complete_each_plus_final">إرسال عند كل تقييم + رسالة نهائية عند الاكتمال</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="evaluation_email_average_complete_mode" id="complete_waiting_supervisor" value="waiting_supervisor_plus_final" <?= $current_email_average_complete_mode === 'waiting_supervisor_plus_final' ? 'checked' : '' ?>>
+                                <label class="form-check-label" for="complete_waiting_supervisor"><strong>إرسال تنبيه بانتظار المشرف + رسالة نهائية عند الاكتمال</strong></label>
+                            </div>
+                        </div>
+
+                        <button type="submit" name="save_evaluation_email_settings" class="btn btn-success">
+                            <i class="fas fa-save"></i> حفظ إعدادات البريد
+                        </button>
                     </form>
                 </div>
             </div>

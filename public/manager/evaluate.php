@@ -310,7 +310,7 @@ if ($_POST) {
 
         $total_score = 0;
         $pdo->beginTransaction();
-		// (جديد) تهيئة المسجل
+        // (جديد) تهيئة المسجل
         $logger = new Logger($pdo);
         try {
             if (!$evaluation) {
@@ -364,48 +364,25 @@ if ($_POST) {
             // === إنهاء التقييم أو حفظ مسودة ===
             if (isset($_POST['submit'])) {
                 $pdo->prepare("UPDATE employee_evaluations SET status = 'submitted' WHERE id = ?")->execute([$evaluation_id]);
-                
-                // === إنشاء رابط التقييم تلقائيًّا ===
-                $token_stmt = $pdo->prepare("SELECT unique_token FROM employee_evaluation_links WHERE employee_id = ? AND cycle_id = ?");
-                $token_stmt->execute([$employee_id, $active_cycle['id']]);
-                $existing_token = $token_stmt->fetchColumn();
-                
-                if (!$existing_token) {
-                    $new_token = bin2hex(random_bytes(16)); // UUID بسيط
-                    $expires_at = date('Y-m-d H:i:s', strtotime('+90 days')); // (مُعدَّل) تعيين انتهاء الصلاحية
-                    $pdo->prepare("
-                        INSERT INTO employee_evaluation_links (employee_id, cycle_id, unique_token, expires_at) 
-                        VALUES (?, ?, ?, ?)
-                    ")->execute([$employee_id, $active_cycle['id'], $new_token, $expires_at]);
-					// === (جديد) إرسال إشعار للموظف ===
-$settings = $pdo->query("SELECT value FROM system_settings WHERE `key`='auto_send_eval'")->fetchColumn();
-if ($settings == '1') {
-    require_once '../../app/core/Mailer.php';
-    $mailer = new Mailer($pdo);
-    
-    // بناء رابط التقييم
-    $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http";
-    $host = $_SERVER['HTTP_HOST'];
-    // افترضنا أن ملف العرض في public/view-evaluation.php
-    // قد تحتاج لتعديل المسار حسب المجلد الفرعي لمشروعك على السيرفر
-    $path = dirname(dirname($_SERVER['PHP_SELF'])); // يرجع /al-buraq-hr/public
-    $link = "$protocol://$host$path/view-evaluation.php?token=$new_token";
 
-    $mailer->sendEmail($employee['email'], $employee['name'], 'evaluation_link', [
-        'name' => $employee['name'],
-        'link' => $link
-    ]);
-}
-// (جديد) تسجيل النشاط (إرسال)
-                $logger->log('evaluation', "قام بإرسال التقييم النهائي للموظف: {$employee['name']}");
-// =================================
-                }
-                
+                // (جديد) تسجيل النشاط (إرسال)
+                $logger->log('evaluation', "قام بإرسال تقييم للموظف: {$employee['name']}");
+
                 // === في حالة النجاح: توليد رمز CSRF جديد قبل إعادة التوجيه ===
                 try { $new_csrf_token = bin2hex(random_bytes(32)); } catch (Exception $e) {}
                 $_SESSION['csrf_token'] = $new_csrf_token;
                 
                 $pdo->commit();
+
+                // (جديد) إرسال بريد إلكتروني مشروط حسب طريقة الاحتساب والإعدادات
+                try {
+                    require_once '../../app/core/EmailService.php';
+                    $emailService = new EmailService($pdo);
+                    $emailService->handleEvaluationSubmitted($employee_id, $active_cycle['id'], 'manager', $manager_id);
+                } catch (Exception $mailEx) {
+                    error_log('Conditional evaluation email failed (manager): ' . $mailEx->getMessage());
+                }
+
                 // العودة للقائمة مع رسالة
                 header("Location: dashboard.php?msg=submitted");
             } else {
