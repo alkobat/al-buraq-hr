@@ -14,7 +14,7 @@ $logout_csrf_token = $_SESSION['logout_csrf_token'];
 // =============================
 // حفظ الإعدادات
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_smtp'])) {
-    $keys = ['smtp_host', 'smtp_port', 'smtp_user', 'smtp_pass', 'smtp_secure', 'smtp_from_email', 'smtp_from_name', 'auto_send_user', 'auto_send_eval'];
+    $keys = ['smtp_host', 'smtp_port', 'smtp_user', 'smtp_pass', 'smtp_secure', 'smtp_from_email', 'smtp_from_name', 'auto_send_user'];
     foreach ($keys as $key) {
         $val = $_POST[$key] ?? '';
         $pdo->prepare("UPDATE system_settings SET `value` = ? WHERE `key` = ?")->execute([$val, $key]);
@@ -68,13 +68,16 @@ $templates = $pdo->query("SELECT * FROM email_templates")->fetchAll();
                             
                             <hr>
                             <h6>الأتمتة (Automation)</h6>
-                            <div class="form-check form-switch mb-2">
+                            <div class="form-check form-switch mb-3">
                                 <input class="form-check-input" type="checkbox" name="auto_send_user" value="1" <?= $settings['auto_send_user']=='1'?'checked':''?>>
                                 <label class="form-check-label">إرسال تلقائي عند إضافة مستخدم جديد (مع كلمة السر)</label>
                             </div>
-                            <div class="form-check form-switch mb-3">
-                                <input class="form-check-input" type="checkbox" name="auto_send_eval" value="1" <?= $settings['auto_send_eval']=='1'?'checked':''?>>
-                                <label class="form-check-label">إرسال تلقائي للموظف عند اكتمال التقييم من المدير</label>
+                            
+                            <div class="alert alert-info small mb-3">
+                                <i class="fas fa-info-circle"></i>
+                                <strong>إعدادات إرسال البريد للتقييمات:</strong><br>
+                                لتخصيص إرسال البريد الإلكتروني عند اكتمال التقييمات، يرجى الانتقال إلى:
+                                <a href="settings.php" class="alert-link"><strong>الإعدادات → إعدادات إرسال البريد الإلكتروني للتقييمات</strong></a>
                             </div>
                             
                             <button type="submit" name="save_smtp" class="btn btn-primary w-100">حفظ الإعدادات</button>
