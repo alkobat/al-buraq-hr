@@ -196,7 +196,7 @@ if ($_POST) {
     } else {
         $total_score = 0;
         $pdo->beginTransaction();
-		        // (جديد) تهيئة المسجل
+                // (جديد) تهيئة المسجل
         $logger = new Logger($pdo);
         try {
             if (!$evaluation) {
@@ -230,10 +230,20 @@ if ($_POST) {
             if (isset($_POST['submit'])) {
                 $pdo->prepare("UPDATE employee_evaluations SET status = 'submitted' WHERE id = ?")->execute([$evaluation_id]);
                
-			    $pdo->commit();
+                $pdo->commit();
+
+                // (جديد) إرسال بريد إلكتروني مشروط حسب طريقة الاحتساب والإعدادات
+                try {
+                   require_once '../../app/core/EmailService.php';
+                   $emailService = new EmailService($pdo);
+                   $emailService->handleEvaluationSubmitted($employee_id, $active_cycle['id'], 'supervisor', $supervisor_id);
+                } catch (Exception $mailEx) {
+                   error_log('Conditional evaluation email failed (supervisor): ' . $mailEx->getMessage());
+                }
+
                 header("Location: evaluate.php?msg=submitted");
             } else {
-			             // (جديد) تسجيل النشاط (حفظ مسودة)
+                         // (جديد) تسجيل النشاط (حفظ مسودة)
                 $logger->log('evaluation', "قام بحفظ مسودة تقييم (مشرف) للموظف: {$employee['name']}");
 
                 $pdo->commit();

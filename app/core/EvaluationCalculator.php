@@ -298,6 +298,18 @@ class EvaluationCalculator {
     }
     
     /**
+     * التحقق مما إذا كان تقييم الموظف مكتملًا حسب طريقة الاحتساب الحالية
+     * 
+     * @param int $employeeId
+     * @param int $cycleId
+     * @return bool
+     */
+    public function isEvaluationComplete($employeeId, $cycleId) {
+        $scores = $this->getEmployeeScores($employeeId, $cycleId);
+        return ($scores['status'] ?? '') === 'complete' && ($scores['final_score'] ?? null) !== null;
+    }
+    
+    /**
      * الحصول على اسم الطريقة بالعربية
      * 
      * @param string|null $method الطريقة (إذا كانت null، يتم جلبها من الإعدادات)
