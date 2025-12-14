@@ -6,7 +6,8 @@
         "php": ">=7.4",
         "phpoffice/phpspreadsheet": "^1.28",
         "mpdf/mpdf": "^8.1",
-        "phpoffice/phpword": "^1.1"
+        "phpoffice/phpword": "^1.1",
+        "phpmailer/phpmailer": "^6.9"
     },
     "autoload": {
         "psr-4": {
