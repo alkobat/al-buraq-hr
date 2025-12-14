@@ -27,6 +27,16 @@ if (empty($_SESSION['csrf_token'])) {
 $csrf_token = $_SESSION['csrf_token'];
 // ==========================================
 
+// ==========================================
+// (إصلاح) استدعاء ملف التحميل التلقائي للمكتبات (Composer)
+// ضروري لتحميل PHPMailer وباقي الاعتماديات
+if (file_exists('../../vendor/autoload.php')) {
+    require_once '../../vendor/autoload.php';
+} else {
+    die('<div style="padding:20px; direction:rtl;">خطأ: ملف المكتبات غير موجود (vendor/autoload.php). تأكد من تشغيل: <strong>composer install</strong></div>');
+}
+// ==========================================
+
 require_once '../../app/core/db.php';
 require_once '../../app/core/Logger.php'; // (جديد) استدعاء كلاس التسجيل
 

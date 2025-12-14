@@ -5,6 +5,16 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'supervisor') {
     exit;
 }
 
+// ==========================================
+// (إصلاح) استدعاء ملف التحميل التلقائي للمكتبات (Composer)
+// ضروري لتحميل PHPMailer وباقي الاعتماديات
+if (file_exists('../../vendor/autoload.php')) {
+    require_once '../../vendor/autoload.php';
+} else {
+    die('<div style="padding:20px; direction:rtl;">خطأ: ملف المكتبات غير موجود (vendor/autoload.php). تأكد من تشغيل: <strong>composer install</strong></div>');
+}
+// ==========================================
+
 require_once '../../app/core/db.php';
 require_once '../../app/core/Logger.php';
 

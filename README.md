@@ -47,6 +47,8 @@ cd al-buraq-hr
 composer install
 ```
 
+> **Note**: Email sending depends on **PHPMailer**. After installation you should have `vendor/autoload.php` available.
+
 3. **Configure database**
 ```bash
 # Update database credentials in app/core/db.php or set environment variables
@@ -146,6 +148,7 @@ DB_PASS=
 - **phpoffice/phpspreadsheet** ^1.28 - Excel file generation
 - **mpdf/mpdf** ^8.1 - PDF generation with Arabic support
 - **phpoffice/phpword** ^1.1 - Word document generation
+- **phpmailer/phpmailer** ^6.9 - Email sending via SMTP (PHPMailer)
 
 Install all dependencies:
 ```bash

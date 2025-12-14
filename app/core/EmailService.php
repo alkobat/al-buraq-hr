@@ -1,5 +1,12 @@
 <?php
 
+$autoloadPath = dirname(__DIR__, 2) . '/vendor/autoload.php';
+if (file_exists($autoloadPath)) {
+    require_once $autoloadPath;
+} else {
+    throw new RuntimeException('الاعتماديات غير مثبتة. تأكد من تشغيل: composer install');
+}
+
 require_once __DIR__ . '/Mailer.php';
 require_once __DIR__ . '/EvaluationCalculator.php';
 
