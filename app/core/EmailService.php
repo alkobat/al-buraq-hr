@@ -31,7 +31,11 @@ class EmailService
      * الدالة الرئيسية التي يتم استدعاؤها بعد إرسال تقييم (Submit) من المدير/المشرف.
      */
     public function handleEvaluationSubmitted($employeeId, $cycleId, $evaluatorRole, $evaluatorId)
-    {
+{
+    // 🆕 فحص Master Toggle
+    if ($this->getSetting('auto_send_eval', '0') !== '1') {
+        return; // إيقاف فوري
+    }
         try {
             $method = $this->calculator->getEvaluationMethod();
 
