@@ -41,6 +41,11 @@ desktop.ini
 *.bak
 *.old
 
+# Testing
+.phpunit.result.cache
+/tests/.phpunit.cache
+phpunit.xml.dist
+
 # CakePHP Legacy (keep for compatibility)
 /tmp/cache/models/*
 !/tmp/cache/models/empty
