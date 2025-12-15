@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: 10 ديسمبر 2025 الساعة 22:50
+-- Generation Time: 15 ديسمبر 2025 الساعة 23:57
 -- إصدار الخادم: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -89,7 +89,44 @@ INSERT INTO `activity_logs` (`id`, `user_id`, `user_name`, `role`, `action`, `de
 (44, 5, 'حاتم عياد بن حامد', 'supervisor', 'login', 'قام بتسجيل الدخول للنظام', '::1', '2025-12-10 21:12:59'),
 (45, 5, 'حاتم عياد بن حامد', 'supervisor', 'logout', 'قام بتسجيل الخروج من النظام', '::1', '2025-12-10 21:33:50'),
 (46, 1, 'المسؤول الرئيسي', 'admin', 'login', 'قام بتسجيل الدخول للنظام', '::1', '2025-12-10 21:34:12'),
-(47, 1, 'المسؤول الرئيسي', 'admin', 'create', 'تم إنشاء نسخة احتياطية للنظام: backup_2025-12-10_22-36-03.sql', '::1', '2025-12-10 21:36:03');
+(47, 1, 'المسؤول الرئيسي', 'admin', 'create', 'تم إنشاء نسخة احتياطية للنظام: backup_2025-12-10_22-36-03.sql', '::1', '2025-12-10 21:36:03'),
+(48, 1, 'المسؤول الرئيسي', 'admin', 'login', 'قام بتسجيل الدخول للنظام', '::1', '2025-12-11 22:17:34'),
+(49, 1, 'المسؤول الرئيسي', 'admin', 'login', 'قام بتسجيل الدخول للنظام', '::1', '2025-12-12 00:44:06'),
+(50, 1, 'المسؤول الرئيسي', 'admin', 'login', 'قام بتسجيل الدخول للنظام', '::1', '2025-12-13 19:45:51'),
+(51, 1, 'المسؤول الرئيسي', 'admin', 'settings', 'تم تغيير طريقة احتساب التقييمات من \'تقييم مدير الإدارة فقط\' إلى \'متوسط تقييمي المدير والمشرف\'', '::1', '2025-12-13 21:25:30'),
+(52, 1, 'المسؤول الرئيسي', 'admin', 'logout', 'قام بتسجيل الخروج من النظام', '::1', '2025-12-13 21:26:56'),
+(53, 2, 'مجدي', 'manager', 'login', 'قام بتسجيل الدخول للنظام', '::1', '2025-12-13 21:27:08'),
+(54, 2, 'مجدي', 'manager', 'logout', 'قام بتسجيل الخروج من النظام', '::1', '2025-12-13 21:28:40'),
+(55, 1, 'المسؤول الرئيسي', 'admin', 'login', 'قام بتسجيل الدخول للنظام', '::1', '2025-12-13 21:28:47'),
+(56, 1, 'المسؤول الرئيسي', 'admin', 'settings', 'تم تغيير طريقة احتساب التقييمات من \'متوسط تقييمي المدير والمشرف\' إلى \'تقييم مدير الإدارة فقط\'', '::1', '2025-12-13 21:28:53'),
+(57, 1, 'المسؤول الرئيسي', 'admin', 'settings', 'تم تغيير طريقة احتساب التقييمات من \'تقييم مدير الإدارة فقط\' إلى \'متوسط تقييمي المدير والمشرف\'', '::1', '2025-12-13 21:43:14'),
+(58, 1, 'المسؤول الرئيسي', 'admin', 'settings', 'تم تغيير طريقة احتساب التقييمات من \'متوسط المدير والمشرف (مع التحقق من الاكتمال)\' إلى \'استخدام التقييم الموجود\'', '::1', '2025-12-13 22:13:35'),
+(59, 1, 'المسؤول الرئيسي', 'admin', 'settings', 'تم تغيير طريقة احتساب التقييمات من \'استخدام التقييم الموجود\' إلى \'تقييم مدير الإدارة فقط\'', '::1', '2025-12-13 22:14:06'),
+(60, 1, 'المسؤول الرئيسي', 'admin', 'settings', 'تم تغيير طريقة احتساب التقييمات من \'تقييم مدير الإدارة فقط\' إلى \'متوسط المدير والمشرف (مع التحقق من الاكتمال)\'', '::1', '2025-12-13 22:14:58'),
+(61, 1, 'المسؤول الرئيسي', 'admin', 'login', 'قام بتسجيل الدخول للنظام', '::1', '2025-12-14 19:31:31'),
+(62, 1, 'المسؤول الرئيسي', 'admin', 'delete', 'تم حذف بيانات المستخدم رقم: 6', '::1', '2025-12-14 22:04:11'),
+(63, 1, 'المسؤول الرئيسي', 'admin', 'create', 'تمت إضافة مستخدم جديد: خبيبيطة (hr@buraq.aero)', '::1', '2025-12-14 22:05:01'),
+(64, 1, 'المسؤول الرئيسي', 'admin', 'logout', 'قام بتسجيل الخروج من النظام', '::1', '2025-12-14 22:06:37'),
+(65, 2, 'مجدي', 'manager', 'login', 'قام بتسجيل الدخول للنظام', '::1', '2025-12-14 22:06:46'),
+(66, 2, 'مجدي', 'manager', 'evaluation', 'قام بإرسال تقييم للموظف: خبيبيطة', '::1', '2025-12-14 22:07:16'),
+(67, 2, 'مجدي', 'manager', 'logout', 'قام بتسجيل الخروج من النظام', '::1', '2025-12-14 22:09:19'),
+(68, 2, 'مجدي', 'manager', 'login', 'قام بتسجيل الدخول للنظام', '::1', '2025-12-14 22:15:50'),
+(69, 2, 'مجدي', 'manager', 'evaluation', 'قام بإرسال تقييم للموظف: خبيبيطة', '::1', '2025-12-14 22:16:33'),
+(70, 2, 'مجدي', 'manager', 'logout', 'قام بتسجيل الخروج من النظام', '::1', '2025-12-14 22:20:47'),
+(71, 1, 'المسؤول الرئيسي', 'admin', 'login', 'قام بتسجيل الدخول للنظام', '::1', '2025-12-14 22:20:56'),
+(72, 1, 'المسؤول الرئيسي', 'admin', 'update', 'تم تعديل بيانات المستخدم رقم: 8', '::1', '2025-12-14 22:29:07'),
+(73, 1, 'المسؤول الرئيسي', 'admin', 'logout', 'قام بتسجيل الخروج من النظام', '::1', '2025-12-14 22:38:06'),
+(74, 2, 'مجدي', 'manager', 'login', 'قام بتسجيل الدخول للنظام', '::1', '2025-12-14 22:38:14'),
+(75, 2, 'مجدي', 'manager', 'evaluation', 'قام بإرسال تقييم للموظف: خبيبيطة', '::1', '2025-12-14 22:39:00'),
+(76, 2, 'مجدي', 'manager', 'logout', 'قام بتسجيل الخروج من النظام', '::1', '2025-12-14 22:39:58'),
+(77, 1, 'المسؤول الرئيسي', 'admin', 'login', 'قام بتسجيل الدخول للنظام', '::1', '2025-12-14 22:40:05'),
+(78, 1, 'المسؤول الرئيسي', 'admin', 'delete', 'تم حذف بيانات المستخدم رقم: 8', '::1', '2025-12-14 22:45:12'),
+(79, 1, 'المسؤول الرئيسي', 'admin', 'create', 'تمت إضافة مستخدم جديد: خبيبيطة (hr@buraq.aero)', '::1', '2025-12-14 22:46:16'),
+(80, 1, 'المسؤول الرئيسي', 'admin', 'delete', 'تم حذف بيانات المستخدم رقم: 9', '::1', '2025-12-14 22:46:46'),
+(81, 1, 'المسؤول الرئيسي', 'admin', 'create', 'تمت إضافة مستخدم جديد: خبيبيطة (hr@buraq.aero)', '::1', '2025-12-14 22:46:57'),
+(82, 1, 'المسؤول الرئيسي', 'admin', 'logout', 'قام بتسجيل الخروج من النظام', '::1', '2025-12-14 22:47:17'),
+(83, 10, 'خبيبيطة', 'manager', 'login', 'قام بتسجيل الدخول للنظام', '::1', '2025-12-14 22:47:25'),
+(84, 1, 'المسؤول الرئيسي', 'admin', 'login', 'قام بتسجيل الدخول للنظام', '::1', '2025-12-15 19:50:17');
 
 -- --------------------------------------------------------
 
@@ -119,6 +156,81 @@ INSERT INTO `departments` (`id`, `name_ar`, `name_en`, `status`, `created_at`) V
 (7, 'مكتب بنغازي', NULL, 'active', '2025-10-13 22:41:33'),
 (8, 'التطوير والتخطيط', NULL, 'active', '2025-10-13 22:42:22'),
 (9, 'الصلاحية الجوية (CAMO)', NULL, 'active', '2025-10-13 22:42:46');
+
+-- --------------------------------------------------------
+
+--
+-- بنية الجدول `email_logs`
+--
+
+CREATE TABLE `email_logs` (
+  `id` int(11) NOT NULL,
+  `recipient_email` varchar(255) NOT NULL,
+  `subject` varchar(255) DEFAULT NULL,
+  `body` longtext DEFAULT NULL,
+  `status` enum('pending','sent','failed','bounced') DEFAULT 'pending',
+  `sent_at` datetime DEFAULT NULL,
+  `error_message` text DEFAULT NULL,
+  `retry_count` int(11) DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `email_type` varchar(100) DEFAULT NULL,
+  `related_employee_id` int(11) DEFAULT NULL,
+  `related_cycle_id` int(11) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- بنية الجدول `email_rate_limits`
+--
+
+CREATE TABLE `email_rate_limits` (
+  `id` int(11) NOT NULL,
+  `email_address` varchar(255) DEFAULT NULL,
+  `daily_count` int(11) DEFAULT 0,
+  `hourly_count` int(11) DEFAULT 0,
+  `last_reset` datetime DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- بنية الجدول `email_rate_limit_logs`
+--
+
+CREATE TABLE `email_rate_limit_logs` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `recipient_email` varchar(150) NOT NULL,
+  `sender_id` varchar(50) DEFAULT 'system',
+  `success` tinyint(1) DEFAULT 1,
+  `attempted_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- إرجاع أو استيراد بيانات الجدول `email_rate_limit_logs`
+--
+
+INSERT INTO `email_rate_limit_logs` (`id`, `recipient_email`, `sender_id`, `success`, `attempted_at`) VALUES
+(1, 'test@example.com', 'test_user', 1, '2025-12-15 21:45:44'),
+(2, 'test@example.com', 'test_user', 1, '2025-12-15 22:47:41');
+
+-- --------------------------------------------------------
+
+--
+-- بنية الجدول `email_settings`
+--
+
+CREATE TABLE `email_settings` (
+  `id` int(11) NOT NULL,
+  `setting_key` varchar(255) NOT NULL,
+  `setting_value` longtext DEFAULT NULL,
+  `setting_type` varchar(50) DEFAULT NULL,
+  `description` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -170,7 +282,7 @@ CREATE TABLE `employee_evaluations` (
 INSERT INTO `employee_evaluations` (`id`, `employee_id`, `cycle_id`, `evaluator_id`, `evaluator_role`, `status`, `total_score`, `created_at`, `updated_at`, `accepted_at`) VALUES
 (1, 3, 1, 2, 'manager', 'approved', 60.00, '2025-10-14 21:40:26', '2025-10-22 22:16:16', '2025-10-23 00:16:16'),
 (2, 4, 1, 2, 'manager', 'submitted', 55.00, '2025-10-18 17:54:00', '2025-10-19 21:59:35', NULL),
-(3, 3, 1, 5, 'supervisor', 'submitted', 87.00, '2025-10-19 19:56:56', '2025-10-19 21:38:39', NULL),
+(3, 3, 1, 5, 'supervisor', 'approved', 87.00, '2025-10-19 19:56:56', '2025-12-12 00:23:28', NULL),
 (4, 5, 1, 2, 'manager', 'draft', 20.00, '2025-12-06 21:00:26', '2025-12-06 21:00:26', NULL);
 
 -- --------------------------------------------------------
@@ -389,9 +501,10 @@ INSERT INTO `system_settings` (`id`, `key`, `value`) VALUES
 (10, 'smtp_secure', 'ssl'),
 (11, 'smtp_from_email', 'hr@buraq.aero'),
 (12, 'smtp_from_name', 'نظام تقييم الأداء'),
-(13, 'auto_send_user', ''),
-(14, 'auto_send_eval', ''),
-(15, 'cron_secret_key', 'buraq_secret_123');
+(13, 'auto_send_user', '1'),
+(14, 'auto_send_eval', '1'),
+(15, 'cron_secret_key', 'buraq_secret_123'),
+(16, 'evaluation_method', 'manager_only');
 
 -- --------------------------------------------------------
 
@@ -423,12 +536,12 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `name`, `email`, `password`, `role`, `department_id`, `manager_id`, `supervisor_id`, `job_title`, `birth_date`, `marital_status`, `gender`, `status`, `force_password_change`, `created_at`, `last_login`) VALUES
-(1, 'المسؤول الرئيسي', 'alkobat@buraq.aero', '$2y$10$3FJyqBJTJt/Do3QE77wWLOuGpDnyfwOipAXq/E1eZs0MPgBGUGPKO', 'admin', NULL, NULL, NULL, '', NULL, NULL, NULL, 'active', 0, '2025-10-13 20:32:04', '2025-12-10 23:34:12'),
-(2, 'مجدي', 'hr.manager@buraq.aero', '$2y$10$IpvZdJxIM5TR17awNKQ2guyXuPUINQWH9bIU/1RJ2tm.aRKhvs8Pm', 'manager', 1, NULL, NULL, 'مدير ادارة الموارد البشرية', NULL, NULL, NULL, 'active', 0, '2025-10-13 21:42:10', '2025-12-10 23:08:56'),
+(1, 'المسؤول الرئيسي', 'alkobat@buraq.aero', '$2y$10$3FJyqBJTJt/Do3QE77wWLOuGpDnyfwOipAXq/E1eZs0MPgBGUGPKO', 'admin', NULL, NULL, NULL, '', NULL, NULL, NULL, 'active', 0, '2025-10-13 20:32:04', '2025-12-15 21:50:17'),
+(2, 'مجدي', 'hr.manager@buraq.aero', '$2y$10$IpvZdJxIM5TR17awNKQ2guyXuPUINQWH9bIU/1RJ2tm.aRKhvs8Pm', 'manager', 1, NULL, NULL, 'مدير ادارة الموارد البشرية', NULL, NULL, NULL, 'active', 0, '2025-10-13 21:42:10', '2025-12-15 00:38:14'),
 (3, 'موسى', 'mosa@buraq.aero', '$2y$10$ZtMDxEwdPZRQUuRBQBcVzeDWoIwLO7FU.9R8Q2970Njl5PzdHp8s6', 'employee', 1, 2, 5, 'موظف', NULL, NULL, NULL, 'active', 0, '2025-10-13 22:04:46', '2025-12-01 22:29:42'),
 (4, 'وصال الهادي العزابي', 'wesal@buraq.aero', '$2y$10$GuMMZ3nvM/tDsnWit4zj0O9CakkP86CNxTLJlxpvT6G4k9wK0T2Tu', 'evaluator', 1, 2, NULL, 'منسق وحدة شئون العاملين', NULL, NULL, NULL, 'active', 0, '2025-10-14 20:28:47', '2025-12-10 22:59:24'),
 (5, 'حاتم عياد بن حامد', 'hatem@buraq.aero', '$2y$10$pfUVPUdgxVnWSs5a0eWzZ.AEMs16JmTBHkC08rn1sIu0K2ptn00lO', 'supervisor', 1, 2, NULL, 'موظف', NULL, NULL, NULL, 'active', 0, '2025-10-19 19:55:23', '2025-12-10 23:12:59'),
-(6, 'خبيبيطة', 'alkobat@gmail.com', '$2y$10$h3ZqYBV6eeKR5zfBZlHsne7YynvN/qh0ohNubDxXE74mbEZnOmkPq', 'employee', 3, NULL, NULL, 'رئيس قسم الموارد البشرية', NULL, NULL, NULL, 'active', 1, '2025-12-09 19:55:33', NULL);
+(10, 'خبيبيطة', 'hr@buraq.aero', '$2y$10$2yc32NfYC64daCXwFi7z.eofJZ9oQo3sedIYLpSno3RnrVf93Pkm.', 'manager', 3, NULL, NULL, '', NULL, NULL, NULL, 'active', 0, '2025-12-14 22:46:57', '2025-12-15 00:47:24');
 
 --
 -- Indexes for dumped tables
@@ -447,6 +560,36 @@ ALTER TABLE `activity_logs`
 --
 ALTER TABLE `departments`
   ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `email_logs`
+--
+ALTER TABLE `email_logs`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_status` (`status`),
+  ADD KEY `idx_sent_at` (`sent_at`),
+  ADD KEY `idx_email_type` (`email_type`);
+
+--
+-- Indexes for table `email_rate_limits`
+--
+ALTER TABLE `email_rate_limits`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `email_rate_limit_logs`
+--
+ALTER TABLE `email_rate_limit_logs`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_recipient_time` (`recipient_email`,`attempted_at`),
+  ADD KEY `idx_sender_time` (`sender_id`,`attempted_at`);
+
+--
+-- Indexes for table `email_settings`
+--
+ALTER TABLE `email_settings`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `setting_key` (`setting_key`);
 
 --
 -- Indexes for table `email_templates`
@@ -549,13 +692,37 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `activity_logs`
 --
 ALTER TABLE `activity_logs`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=48;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=85;
 
 --
 -- AUTO_INCREMENT for table `departments`
 --
 ALTER TABLE `departments`
   MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+
+--
+-- AUTO_INCREMENT for table `email_logs`
+--
+ALTER TABLE `email_logs`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `email_rate_limits`
+--
+ALTER TABLE `email_rate_limits`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `email_rate_limit_logs`
+--
+ALTER TABLE `email_rate_limit_logs`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+
+--
+-- AUTO_INCREMENT for table `email_settings`
+--
+ALTER TABLE `email_settings`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `email_templates`
@@ -567,13 +734,13 @@ ALTER TABLE `email_templates`
 -- AUTO_INCREMENT for table `employee_evaluations`
 --
 ALTER TABLE `employee_evaluations`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- AUTO_INCREMENT for table `employee_evaluation_links`
 --
 ALTER TABLE `employee_evaluation_links`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `evaluation_custom_text_fields`
@@ -603,7 +770,7 @@ ALTER TABLE `evaluation_fields`
 -- AUTO_INCREMENT for table `evaluation_responses`
 --
 ALTER TABLE `evaluation_responses`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=62;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=68;
 
 --
 -- AUTO_INCREMENT for table `notifications`
@@ -621,13 +788,13 @@ ALTER TABLE `strengths_weaknesses`
 -- AUTO_INCREMENT for table `system_settings`
 --
 ALTER TABLE `system_settings`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- قيود الجداول المُلقاة.
