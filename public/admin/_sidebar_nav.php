@@ -28,14 +28,17 @@ $logout_path = isset($logout_path) ? $logout_path : '../logout.php';
         <i class="fas fa-chart-bar"></i> التقارير والإحصائيات
     </a>
         <a href="<?= $nav_path ?>bulk_email.php" class="<?= $current_page === 'bulk_email.php' ? 'active' : '' ?>">
-        <i class="fas fa-mail-bulk"></i> الإرسال الجماعي
-    </a>
-    <a href="<?= $nav_path ?>reminders.php" class="<?= $current_page === 'reminders.php' ? 'active' : '' ?>">
-        <i class="fas fa-bullhorn"></i> نظام التذكير
-    </a>
-    <a href="<?= $nav_path ?>settings.php" class="<?= $current_page === 'settings.php' ? 'active' : '' ?>">
-        <i class="fas fa-cog"></i> الإعدادات
-    </a>
+            <i class="fas fa-mail-bulk"></i> الإرسال الجماعي
+        </a>
+        <a href="<?= $nav_path ?>email-dashboard.php" class="<?= $current_page === 'email-dashboard.php' ? 'active' : '' ?>">
+            <i class="fas fa-envelope"></i> مراقبة البريد
+        </a>
+        <a href="<?= $nav_path ?>reminders.php" class="<?= $current_page === 'reminders.php' ? 'active' : '' ?>">
+            <i class="fas fa-bullhorn"></i> نظام التذكير
+        </a>
+        <a href="<?= $nav_path ?>settings.php" class="<?= $current_page === 'settings.php' ? 'active' : '' ?>">
+            <i class="fas fa-cog"></i> الإعدادات
+        </a>
     <a href="<?= $nav_path ?>notifications.php" class="<?= $current_page === 'notifications.php' ? 'active' : '' ?>">
         <i class="fas fa-bell"></i> الإشعارات
     </a>
