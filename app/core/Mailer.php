@@ -7,6 +7,8 @@ if (!class_exists(PHPMailer::class) && file_exists($autoloadPath)) {
     require_once $autoloadPath;
 }
 
+require_once __DIR__ . '/SecurityManager.php';
+
 class Mailer
 {
     private $pdo;
@@ -15,8 +17,24 @@ class Mailer
     public function __construct($pdo)
     {
         $this->pdo = $pdo;
-        $stmt = $this->pdo->query("SELECT `key`, `value` FROM system_settings");
-        $this->settings = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+        $stmt = $this->pdo->query("SELECT `key`, `value`, `is_encrypted` FROM system_settings");
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        $this->settings = [];
+        foreach ($results as $row) {
+            $value = $row['value'];
+            
+            if ($row['is_encrypted'] == 1 && $value) {
+                try {
+                    $value = SecurityManager::decrypt($value);
+                } catch (Exception $e) {
+                    error_log('Failed to decrypt setting ' . $row['key'] . ': ' . $e->getMessage());
+                    $value = '';
+                }
+            }
+            
+            $this->settings[$row['key']] = $value;
+        }
     }
 
     private function getMailer(): PHPMailer
