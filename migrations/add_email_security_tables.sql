@@ -1,7 +1,7 @@
 -- إضافة جداول أمان البريد الإلكتروني
 
 -- 1. إضافة عمود للبريد المشفر والمجزأ في سجلات البريد (للخصوصية)
-ALTER TABLE `email_logs` ADD COLUMN `recipient_email_hash` varchar(64) DEFAULT NULL AFTER `to_email`;
+ALTER TABLE `email_logs` ADD COLUMN `recipient_email_hash` varchar(64) DEFAULT NULL AFTER `recipient_email`;
 ALTER TABLE `email_logs` ADD COLUMN `is_encrypted` tinyint(1) DEFAULT 0 AFTER `recipient_email_hash`;
 ALTER TABLE `email_logs` ADD KEY `idx_recipient_hash` (`recipient_email_hash`);
 

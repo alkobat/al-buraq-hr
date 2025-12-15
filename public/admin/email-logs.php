@@ -55,7 +55,7 @@ if (!empty($_GET['id'])) {
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label class="text-muted small">المستقبل:</label>
-                            <p><strong><?= htmlspecialchars($email['to_email'] ?? 'غير محدد') ?></strong></p>
+                            <p><strong><?= htmlspecialchars($email['recipient_email'] ?? 'غير محدد') ?></strong></p>
                         </div>
                         <div class="col-md-6">
                             <label class="text-muted small">الحالة:</label>
@@ -116,7 +116,7 @@ if (!empty($_GET['id'])) {
                     <i class="fas fa-tools"></i> إجراءات
                 </div>
                 <div class="card-body">
-                    <?php if ($email['status'] === 'failure' && !empty($email['to_email'])): ?>
+                    <?php if ($email['status'] === 'failure' && !empty($email['recipient_email'])): ?>
                         <form method="POST" action="email-logs.php" class="mb-3">
                             <input type="hidden" name="retry_email_id" value="<?= htmlspecialchars($email['id']) ?>">
                             <button type="submit" class="btn btn-warning w-100">
@@ -150,14 +150,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['retry_email_id'])) {
     $email_id = (int)$_POST['retry_email_id'];
     $email = $stats->getEmailDetails($email_id);
 
-    if ($email && !empty($email['to_email'])) {
+    if ($email && !empty($email['recipient_email'])) {
         require_once '../../app/core/Mailer.php';
         $mailer = new Mailer($pdo);
 
         $sent = false;
         try {
             $sent = $mailer->sendCustomEmail(
-                $email['to_email'],
+                $email['recipient_email'],
                 '',
                 $email['subject'],
                 $email['body']
@@ -310,7 +310,7 @@ $email_types = $types_stmt->fetchAll(PDO::FETCH_COLUMN);
                             <?php foreach ($logs as $log): ?>
                                 <tr>
                                     <td><?= htmlspecialchars($log['id']) ?></td>
-                                    <td><?= htmlspecialchars($log['to_email'] ?? 'غير محدد') ?></td>
+                                    <td><?= htmlspecialchars($log['recipient_email'] ?? 'غير محدد') ?></td>
                                     <td><?= htmlspecialchars(substr($log['subject'], 0, 40)) ?><?= strlen($log['subject']) > 40 ? '...' : '' ?></td>
                                     <td><?= htmlspecialchars($log['email_type'] ?? '-') ?></td>
                                     <td>

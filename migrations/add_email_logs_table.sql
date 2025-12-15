@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS `email_logs` (
   `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
   `employee_id` int(10) UNSIGNED DEFAULT NULL,
   `cycle_id` int(10) UNSIGNED DEFAULT NULL,
-  `to_email` varchar(150) DEFAULT NULL,
+  `recipient_email` varchar(150) DEFAULT NULL,
   `subject` varchar(255) NOT NULL,
   `body` mediumtext DEFAULT NULL,
   `email_type` varchar(50) DEFAULT NULL,

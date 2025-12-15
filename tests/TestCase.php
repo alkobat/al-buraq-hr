@@ -78,7 +78,7 @@ abstract class TestCase extends BaseTestCase
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 employee_id INTEGER,
                 cycle_id INTEGER,
-                to_email TEXT,
+                recipient_email TEXT,
                 subject TEXT,
                 body TEXT,
                 email_type TEXT,

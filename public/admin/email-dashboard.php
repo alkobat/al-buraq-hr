@@ -153,7 +153,7 @@ $current_page = basename(__FILE__);
                                 <?php if (!empty($last_emails)): ?>
                                     <?php foreach ($last_emails as $email): ?>
                                         <tr>
-                                            <td><?= htmlspecialchars($email['to_email'] ?? 'غير محدد') ?></td>
+                                            <td><?= htmlspecialchars($email['recipient_email'] ?? 'غير محدد') ?></td>
                                             <td><?= htmlspecialchars(substr($email['subject'], 0, 50)) ?></td>
                                             <td><?= htmlspecialchars($email['email_type'] ?? '-') ?></td>
                                             <td>
