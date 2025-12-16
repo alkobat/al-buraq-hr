@@ -35,7 +35,7 @@ INSERT IGNORE INTO `email_settings` (`setting_key`, `setting_value`, `setting_ty
 ('log_retention_days', '90', 'integer', 'عدد أيام الاحتفاظ بسجلات البريد');
 
 -- 4. إدراج بعض البيانات النموذجية للاختبار
-INSERT IGNORE INTO `email_logs` (`employee_id`, `to_email`, `subject`, `body`, `email_type`, `status`, `metadata`) VALUES
+INSERT IGNORE INTO `email_logs` (`employee_id`, `recipient_email`, `subject`, `body`, `email_type`, `status`, `metadata`) VALUES
 (1, 'test@example.com', 'رسالة اختبار', 'هذه رسالة اختبار للتحقق من عمل النظام', 'test', 'success', '{"test_mode": true}'),
 (2, 'test2@example.com', 'إشعار تذكير', 'هذا إشعار تذكير للموظف', 'reminder', 'failure', '{"error": "SMTP connection failed"}'),
 (3, 'test3@example.com', 'تقرير الأداء', 'محتوى تقرير الأداء الشهري', 'report', 'success', '{"cycle_id": 1}');

@@ -381,7 +381,7 @@ class EmailService
             }
             
             $stmt = $this->pdo->prepare(
-                "INSERT INTO email_logs (employee_id, cycle_id, to_email, recipient_email_hash, subject, body, email_type, status, error_message, metadata, is_encrypted) 
+                "INSERT INTO email_logs (employee_id, cycle_id, recipient_email, recipient_email_hash, subject, body, email_type, status, error_message, metadata, is_encrypted) 
                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
             );
             $stmt->execute([

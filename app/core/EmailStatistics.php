@@ -72,7 +72,7 @@ class EmailStatistics
 
         // Search by recipient email
         if (!empty($filters['to_email'])) {
-            $query .= " AND to_email LIKE ?";
+            $query .= " AND recipient_email LIKE ?";
             $params[] = '%' . $filters['to_email'] . '%';
         }
 
@@ -130,13 +130,13 @@ class EmailStatistics
     {
         $stmt = $this->pdo->prepare("
             SELECT 
-                to_email,
+                recipient_email,
                 COUNT(*) as count,
                 SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) as success,
                 SUM(CASE WHEN status = 'failure' THEN 1 ELSE 0 END) as failure
             FROM email_logs
-            WHERE to_email IS NOT NULL
-            GROUP BY to_email
+            WHERE recipient_email IS NOT NULL
+            GROUP BY recipient_email
             ORDER BY count DESC
             LIMIT ?
         ");
@@ -172,7 +172,7 @@ class EmailStatistics
         $stmt = $this->pdo->prepare("
             SELECT 
                 id,
-                to_email,
+                recipient_email,
                 subject,
                 email_type,
                 error_message,
@@ -250,7 +250,7 @@ class EmailStatistics
         $stmt = $this->pdo->prepare("
             SELECT 
                 id,
-                to_email,
+                recipient_email,
                 subject,
                 status,
                 email_type,
@@ -271,8 +271,8 @@ class EmailStatistics
         $stmt = $this->pdo->prepare("
             SELECT * FROM email_logs
             WHERE status = 'failure'
-            AND to_email IS NOT NULL
-            AND to_email != ''
+            AND recipient_email IS NOT NULL
+            AND recipient_email != ''
             ORDER BY created_at DESC
             LIMIT ?
         ");
@@ -290,7 +290,7 @@ class EmailStatistics
                 COUNT(*) as total,
                 SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) as sent,
                 SUM(CASE WHEN status = 'failure' THEN 1 ELSE 0 END) as failed,
-                COUNT(DISTINCT to_email) as unique_recipients
+                COUNT(DISTINCT recipient_email) as unique_recipients
             FROM email_logs
             WHERE DATE(created_at) BETWEEN ? AND ?
         ");
