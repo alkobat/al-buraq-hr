@@ -17,23 +17,23 @@ class Mailer
     public function __construct($pdo)
     {
         $this->pdo = $pdo;
-        $stmt = $this->pdo->query("SELECT `key`, `value`, `is_encrypted` FROM system_settings");
+        $stmt = $this->pdo->query("SELECT `setting_key`, `setting_value`, `is_encrypted` FROM email_settings");
         $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         $this->settings = [];
         foreach ($results as $row) {
-            $value = $row['value'];
+            $value = $row['setting_value'];
             
             if ($row['is_encrypted'] == 1 && $value) {
                 try {
                     $value = SecurityManager::decrypt($value);
                 } catch (Exception $e) {
-                    error_log('Failed to decrypt setting ' . $row['key'] . ': ' . $e->getMessage());
+                    error_log('Failed to decrypt setting ' . $row['setting_key'] . ': ' . $e->getMessage());
                     $value = '';
                 }
             }
             
-            $this->settings[$row['key']] = $value;
+            $this->settings[$row['setting_key']] = $value;
         }
     }
 

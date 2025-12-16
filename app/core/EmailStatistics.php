@@ -71,9 +71,9 @@ class EmailStatistics
         }
 
         // Search by recipient email
-        if (!empty($filters['to_email'])) {
-            $query .= " AND recipient_email LIKE ?";
-            $params[] = '%' . $filters['to_email'] . '%';
+        if (!empty($filters['recipient_email'])) {
+            $query .= " AND to_email LIKE ?";
+            $params[] = '%' . $filters['recipient_email'] . '%';
         }
 
         // Search by subject
@@ -130,13 +130,13 @@ class EmailStatistics
     {
         $stmt = $this->pdo->prepare("
             SELECT 
-                recipient_email,
+                to_email,
                 COUNT(*) as count,
                 SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) as success,
                 SUM(CASE WHEN status = 'failure' THEN 1 ELSE 0 END) as failure
             FROM email_logs
-            WHERE recipient_email IS NOT NULL
-            GROUP BY recipient_email
+            WHERE to_email IS NOT NULL
+            GROUP BY to_email
             ORDER BY count DESC
             LIMIT ?
         ");
@@ -172,7 +172,7 @@ class EmailStatistics
         $stmt = $this->pdo->prepare("
             SELECT 
                 id,
-                recipient_email,
+                to_email,
                 subject,
                 email_type,
                 error_message,
@@ -271,8 +271,8 @@ class EmailStatistics
         $stmt = $this->pdo->prepare("
             SELECT * FROM email_logs
             WHERE status = 'failure'
-            AND recipient_email IS NOT NULL
-            AND recipient_email != ''
+            AND to_email IS NOT NULL
+            AND to_email != ''
             ORDER BY created_at DESC
             LIMIT ?
         ");
@@ -290,7 +290,7 @@ class EmailStatistics
                 COUNT(*) as total,
                 SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) as sent,
                 SUM(CASE WHEN status = 'failure' THEN 1 ELSE 0 END) as failed,
-                COUNT(DISTINCT recipient_email) as unique_recipients
+                COUNT(DISTINCT to_email) as unique_recipients
             FROM email_logs
             WHERE DATE(created_at) BETWEEN ? AND ?
         ");
