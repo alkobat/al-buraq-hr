@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: 15 ديسمبر 2025 الساعة 23:57
+-- Generation Time: 16 ديسمبر 2025 الساعة 20:39
 -- إصدار الخادم: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -126,7 +126,8 @@ INSERT INTO `activity_logs` (`id`, `user_id`, `user_name`, `role`, `action`, `de
 (81, 1, 'المسؤول الرئيسي', 'admin', 'create', 'تمت إضافة مستخدم جديد: خبيبيطة (hr@buraq.aero)', '::1', '2025-12-14 22:46:57'),
 (82, 1, 'المسؤول الرئيسي', 'admin', 'logout', 'قام بتسجيل الخروج من النظام', '::1', '2025-12-14 22:47:17'),
 (83, 10, 'خبيبيطة', 'manager', 'login', 'قام بتسجيل الدخول للنظام', '::1', '2025-12-14 22:47:25'),
-(84, 1, 'المسؤول الرئيسي', 'admin', 'login', 'قام بتسجيل الدخول للنظام', '::1', '2025-12-15 19:50:17');
+(84, 1, 'المسؤول الرئيسي', 'admin', 'login', 'قام بتسجيل الدخول للنظام', '::1', '2025-12-15 19:50:17'),
+(85, 1, 'المسؤول الرئيسي', 'admin', 'login', 'قام بتسجيل الدخول للنظام', '::1', '2025-12-16 19:05:09');
 
 -- --------------------------------------------------------
 
@@ -166,18 +167,40 @@ INSERT INTO `departments` (`id`, `name_ar`, `name_en`, `status`, `created_at`) V
 CREATE TABLE `email_logs` (
   `id` int(11) NOT NULL,
   `recipient_email` varchar(255) NOT NULL,
+  `to_email` varchar(255) DEFAULT NULL,
+  `from_email` varchar(255) DEFAULT NULL,
   `subject` varchar(255) DEFAULT NULL,
   `body` longtext DEFAULT NULL,
-  `status` enum('pending','sent','failed','bounced') DEFAULT 'pending',
+  `html_body` longtext DEFAULT NULL,
+  `status` enum('pending','sent','failed','bounced','delivered') DEFAULT 'pending',
   `sent_at` datetime DEFAULT NULL,
+  `delivered_at` datetime DEFAULT NULL,
+  `failed_at` datetime DEFAULT NULL,
   `error_message` text DEFAULT NULL,
+  `error_code` varchar(50) DEFAULT NULL,
   `retry_count` int(11) DEFAULT 0,
+  `max_retries` int(11) DEFAULT 3,
+  `next_retry_at` datetime DEFAULT NULL,
+  `is_encrypted` tinyint(1) DEFAULT 0,
+  `encryption_key` varchar(255) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `email_type` varchar(100) DEFAULT NULL,
+  `email_category` varchar(100) DEFAULT NULL,
+  `priority` enum('low','normal','high','urgent') DEFAULT 'normal',
   `related_employee_id` int(11) DEFAULT NULL,
-  `related_cycle_id` int(11) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  `related_user_id` int(11) DEFAULT NULL,
+  `related_cycle_id` int(11) DEFAULT NULL,
+  `related_evaluation_id` int(11) DEFAULT NULL,
+  `attachment_count` int(11) DEFAULT 0,
+  `read_status` tinyint(1) DEFAULT 0,
+  `bounce_type` varchar(50) DEFAULT NULL,
+  `campaign_id` varchar(100) DEFAULT NULL,
+  `tracking_id` varchar(255) DEFAULT NULL,
+  `ip_address` varchar(45) DEFAULT NULL,
+  `user_agent` text DEFAULT NULL,
+  `metadata` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`metadata`))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -189,8 +212,13 @@ CREATE TABLE `email_rate_limits` (
   `id` int(11) NOT NULL,
   `email_address` varchar(255) DEFAULT NULL,
   `daily_count` int(11) DEFAULT 0,
+  `daily_limit` int(11) DEFAULT 100,
   `hourly_count` int(11) DEFAULT 0,
+  `hourly_limit` int(11) DEFAULT 10,
   `last_reset` datetime DEFAULT NULL,
+  `is_blocked` tinyint(1) DEFAULT 0,
+  `block_reason` text DEFAULT NULL,
+  `blocked_until` datetime DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -214,7 +242,10 @@ CREATE TABLE `email_rate_limit_logs` (
 
 INSERT INTO `email_rate_limit_logs` (`id`, `recipient_email`, `sender_id`, `success`, `attempted_at`) VALUES
 (1, 'test@example.com', 'test_user', 1, '2025-12-15 21:45:44'),
-(2, 'test@example.com', 'test_user', 1, '2025-12-15 22:47:41');
+(2, 'test@example.com', 'test_user', 1, '2025-12-15 22:47:41'),
+(3, 'test@example.com', 'test_user', 1, '2025-12-15 22:59:53'),
+(4, 'test@example.com', 'test_user', 1, '2025-12-16 19:18:18'),
+(5, 'test@example.com', 'test_user', 1, '2025-12-16 19:20:42');
 
 -- --------------------------------------------------------
 
@@ -228,9 +259,28 @@ CREATE TABLE `email_settings` (
   `setting_value` longtext DEFAULT NULL,
   `setting_type` varchar(50) DEFAULT NULL,
   `description` text DEFAULT NULL,
+  `is_encrypted` tinyint(1) DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- إرجاع أو استيراد بيانات الجدول `email_settings`
+--
+
+INSERT INTO `email_settings` (`id`, `setting_key`, `setting_value`, `setting_type`, `description`, `is_encrypted`, `created_at`, `updated_at`) VALUES
+(1, 'smtp_host', 'mail.buraq.aero', 'text', 'SMTP Host', 0, '2025-12-16 19:16:42', '2025-12-16 19:16:42'),
+(2, 'smtp_port', '587', 'number', 'SMTP Port', 0, '2025-12-16 19:16:42', '2025-12-16 19:16:42'),
+(3, 'smtp_user', 'hr@buraq.aero', 'text', 'SMTP Username', 0, '2025-12-16 19:16:42', '2025-12-16 19:16:42'),
+(4, 'smtp_password', 'buraq@1234', 'password', 'SMTP Password', 1, '2025-12-16 19:16:42', '2025-12-16 19:16:42'),
+(5, 'smtp_encryption', 'tls', 'select', 'SMTP Encryption (tls/ssl)', 0, '2025-12-16 19:16:42', '2025-12-16 19:16:42'),
+(6, 'from_email', 'hr@buraq.aero', 'email', 'From Email Address', 0, '2025-12-16 19:16:42', '2025-12-16 19:16:42'),
+(7, 'from_name', 'نظام الموارد البشرية', 'text', 'From Name', 0, '2025-12-16 19:16:42', '2025-12-16 19:16:42'),
+(8, 'send_auto_email', '1', 'toggle', 'Enable Auto Email Sending', 0, '2025-12-16 19:16:42', '2025-12-16 19:16:42'),
+(9, 'max_retries', '3', 'number', 'Maximum Retry Attempts', 0, '2025-12-16 19:16:42', '2025-12-16 19:16:42'),
+(10, 'retry_delay', '3600', 'number', 'Retry Delay (seconds)', 0, '2025-12-16 19:16:42', '2025-12-16 19:16:42'),
+(11, 'log_emails', '1', 'toggle', 'Log All Emails', 0, '2025-12-16 19:16:42', '2025-12-16 19:16:42'),
+(12, 'email_method', 'average_complete', 'select', 'Email Calculation Method', 0, '2025-12-16 19:16:42', '2025-12-16 19:16:42');
 
 -- --------------------------------------------------------
 
@@ -240,21 +290,17 @@ CREATE TABLE `email_settings` (
 
 CREATE TABLE `email_templates` (
   `id` int(11) NOT NULL,
-  `type` varchar(50) NOT NULL COMMENT 'نوع القالب: new_user, evaluation_link, announcement',
-  `subject` varchar(255) NOT NULL,
-  `body` text NOT NULL,
-  `placeholders` text DEFAULT NULL COMMENT 'وصف المتغيرات المتاحة'
+  `name` varchar(255) NOT NULL,
+  `subject` varchar(255) DEFAULT NULL,
+  `body` longtext DEFAULT NULL,
+  `html_body` longtext DEFAULT NULL,
+  `template_type` varchar(100) DEFAULT NULL,
+  `description` text DEFAULT NULL,
+  `is_active` tinyint(1) DEFAULT 1,
+  `created_by` int(11) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- إرجاع أو استيراد بيانات الجدول `email_templates`
---
-
-INSERT INTO `email_templates` (`id`, `type`, `subject`, `body`, `placeholders`) VALUES
-(1, 'new_user', 'بيانات الدخول للنظام', '<p>مرحباً {name}،</p><p>تم إنشاء حساب لك في نظام الموارد البشرية.</p><p><strong>البريد الإلكتروني:</strong> {email}<br><strong>كلمة المرور:</strong> {password}</p><p>يرجى تسجيل الدخول وتغيير كلمة المرور.</p>', '{name}, {email}, {password}'),
-(2, 'evaluation_link', 'رابط تقييم الأداء السنوي', '<p>مرحباً {name}،</p><p>قام مديرك المباشر برفع تقييم الأداء الخاص بك.</p><p>يرجى الاطلاع عليه والموافقة أو الرفض عبر الرابط التالي:</p><p><a href=\"{link}\">{link}</a></p>', '{name}, {link}'),
-(3, 'announcement', 'إعلان إداري', '<p>مرحباً {name}،</p><p>{message}</p>', '{name}, {message}'),
-(4, 'evaluation_reminder', 'تذكير: تقييمات معلقة بانتظار إنجازك', '<p>عزيزي <strong>{name}</strong>،</p><p>نود تذكيرك بأن لديك <strong>{count}</strong> موظفاً بانتظار إكمال تقييم الأداء الخاص بهم لدورة {year}.</p><p>يرجى التكرم بالدخول للنظام وإنجاز التقييمات في أقرب وقت.</p><p>شكراً لتعاونكم،<br>إدارة الموارد البشرية</p>', '{name}, {count}, {year}');
 
 -- --------------------------------------------------------
 
@@ -536,7 +582,7 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `name`, `email`, `password`, `role`, `department_id`, `manager_id`, `supervisor_id`, `job_title`, `birth_date`, `marital_status`, `gender`, `status`, `force_password_change`, `created_at`, `last_login`) VALUES
-(1, 'المسؤول الرئيسي', 'alkobat@buraq.aero', '$2y$10$3FJyqBJTJt/Do3QE77wWLOuGpDnyfwOipAXq/E1eZs0MPgBGUGPKO', 'admin', NULL, NULL, NULL, '', NULL, NULL, NULL, 'active', 0, '2025-10-13 20:32:04', '2025-12-15 21:50:17'),
+(1, 'المسؤول الرئيسي', 'alkobat@buraq.aero', '$2y$10$3FJyqBJTJt/Do3QE77wWLOuGpDnyfwOipAXq/E1eZs0MPgBGUGPKO', 'admin', NULL, NULL, NULL, '', NULL, NULL, NULL, 'active', 0, '2025-10-13 20:32:04', '2025-12-16 21:05:09'),
 (2, 'مجدي', 'hr.manager@buraq.aero', '$2y$10$IpvZdJxIM5TR17awNKQ2guyXuPUINQWH9bIU/1RJ2tm.aRKhvs8Pm', 'manager', 1, NULL, NULL, 'مدير ادارة الموارد البشرية', NULL, NULL, NULL, 'active', 0, '2025-10-13 21:42:10', '2025-12-15 00:38:14'),
 (3, 'موسى', 'mosa@buraq.aero', '$2y$10$ZtMDxEwdPZRQUuRBQBcVzeDWoIwLO7FU.9R8Q2970Njl5PzdHp8s6', 'employee', 1, 2, 5, 'موظف', NULL, NULL, NULL, 'active', 0, '2025-10-13 22:04:46', '2025-12-01 22:29:42'),
 (4, 'وصال الهادي العزابي', 'wesal@buraq.aero', '$2y$10$GuMMZ3nvM/tDsnWit4zj0O9CakkP86CNxTLJlxpvT6G4k9wK0T2Tu', 'evaluator', 1, 2, NULL, 'منسق وحدة شئون العاملين', NULL, NULL, NULL, 'active', 0, '2025-10-14 20:28:47', '2025-12-10 22:59:24'),
@@ -566,15 +612,21 @@ ALTER TABLE `departments`
 --
 ALTER TABLE `email_logs`
   ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `tracking_id` (`tracking_id`),
   ADD KEY `idx_status` (`status`),
   ADD KEY `idx_sent_at` (`sent_at`),
-  ADD KEY `idx_email_type` (`email_type`);
+  ADD KEY `idx_email_type` (`email_type`),
+  ADD KEY `idx_recipient` (`recipient_email`),
+  ADD KEY `idx_employee` (`related_employee_id`),
+  ADD KEY `idx_created` (`created_at`),
+  ADD KEY `idx_tracking` (`tracking_id`);
 
 --
 -- Indexes for table `email_rate_limits`
 --
 ALTER TABLE `email_rate_limits`
-  ADD PRIMARY KEY (`id`);
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_email` (`email_address`);
 
 --
 -- Indexes for table `email_rate_limit_logs`
@@ -596,7 +648,7 @@ ALTER TABLE `email_settings`
 --
 ALTER TABLE `email_templates`
   ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `type` (`type`);
+  ADD UNIQUE KEY `name` (`name`);
 
 --
 -- Indexes for table `employee_evaluations`
@@ -692,7 +744,7 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `activity_logs`
 --
 ALTER TABLE `activity_logs`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=85;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=86;
 
 --
 -- AUTO_INCREMENT for table `departments`
@@ -716,19 +768,19 @@ ALTER TABLE `email_rate_limits`
 -- AUTO_INCREMENT for table `email_rate_limit_logs`
 --
 ALTER TABLE `email_rate_limit_logs`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `email_settings`
 --
 ALTER TABLE `email_settings`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT for table `email_templates`
 --
 ALTER TABLE `email_templates`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `employee_evaluations`
